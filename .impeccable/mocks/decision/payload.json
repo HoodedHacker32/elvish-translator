@@ -1,0 +1,125 @@
+{
+  "title": "Choose the visual world",
+  "question": "The roll assigned Cloak & Brooch of Lórien. Keep it, take an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "Cloak & Brooch of Lórien",
+      "kicker": "THE ROLL",
+      "lineage": "The Fellowship's parting gifts: grey-green Elven cloaks and the enamel leaf brooch",
+      "thesis": "A translator wearing the Lórien cloak: grey-green twilight panels, silver lettering, and each Elvish word set like an enamel leaf whose veins trace back to the English.",
+      "palette": ["#2f3a33", "#4d5b4f", "#dfe6dc", "#8fcf96", "#d9b45b"],
+      "materials": ["grey-green cloak weave", "silver filigree hairlines", "green enamel leaf"],
+      "viewport": "Top bar with Sindarin/Quenya tabs; English input left, the Elvish line large on the right in silver with Tengwar beneath; a word-by-word provenance strip below.",
+      "risk": "Grey-green can go murky and sombre if the silver and enamel are timid.",
+      "raised": [
+        {"from": "challenger-ikeda", "raise": "Strict value economy: every tone carries a job (ground, panel, text, action, flag), no decorative grey."},
+        {"from": "challenger-goods", "raise": "Every word carries fixed furniture in fixed slots: gloss, part of speech, source, provenance."},
+        {"from": "challenger-gate", "raise": "Mallorn gold is reserved solely for non-canon Neo-Elvish words, so a fill-in is spotted at a glance."},
+        {"from": "challenger-warm", "raise": "Bright enamel green appears only where something can be pressed."}
+      ],
+      "html": ".impeccable/mocks/decision/assigned.html"
+    },
+    {
+      "id": "model-pick",
+      "kind": "pick",
+      "label": "Ithildin",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "The moon-letters on the West-gate of Moria",
+      "thesis": "Translations drawn as ithildin: silver-white lines that wake on dark stone when the phrase resolves.",
+      "palette": ["#1d2128", "#343a44", "#e9eef5", "#9fc3ff"],
+      "materials": ["dark slate", "moonlit silver line", "chiselled inscription"],
+      "viewport": "Dark stone ground, English in a slim input up top, the Elvish phrase and Tengwar drawn in glowing line across a central arch.",
+      "risk": "The most familiar LoTR look; dark-plus-glow is where most runs in this category land.",
+      "html": ".impeccable/mocks/decision/model-pick.html"
+    },
+    {
+      "id": "challenger-atlas",
+      "kind": "challenger",
+      "catalogId": "notation-diagram-systems-star-atlas",
+      "label": "Star Atlas of Elbereth",
+      "verdict": "competitive",
+      "lineage": "Celestial star atlases; the Eldar as the star-folk",
+      "thesis": "Every word is a star: its size is how strongly Tolkien attests it, and lines join the phrase like a constellation.",
+      "palette": ["#14203b", "#f2f0e6", "#e0533d", "#8ea0c4"],
+      "materials": ["navy chart ground", "chalk-white stars", "red-lamp annotation"],
+      "viewport": "Navy field; input top-left; the Elvish phrase plotted as word-stars sized by attestation, glosses in small italic.",
+      "case": "Fuses well: attestation-as-magnitude is a true provenance encoding and Elbereth resonates. Loses on clarity: a star plot reads slower than a line.",
+      "risk": "Can turn a sentence into a puzzle if the plotted layer outranks the readable line.",
+      "html": ".impeccable/mocks/decision/challenger-atlas.html"
+    },
+    {
+      "id": "challenger-rail",
+      "kind": "challenger",
+      "catalogId": "rw-centre-rail-reference-setting",
+      "label": "The Editor's Apparatus",
+      "verdict": "competitive",
+      "lineage": "Wide-margin critical editions like The History of Middle-earth",
+      "thesis": "English and Elvish as twin columns round a vermilion rail of word keys, sources hung in the margin like an editor's notes.",
+      "palette": ["#efe8da", "#1d1a17", "#c2412d"],
+      "materials": ["bone paper", "iron-black ink", "rubric vermilion", "one-pixel ruling"],
+      "viewport": "Two columns, English and Elvish, joined by a centre rail of numbered keys; the margin carries each word's source citation.",
+      "case": "Fuses strongly on clarity: the apparatus IS provenance. Loses on audience identification: reads as a scholarly edition before a translator.",
+      "risk": "Bone paper and serif is the category's default rendition; must stay razor sharp.",
+      "html": ".impeccable/mocks/decision/challenger-rail.html"
+    },
+    {
+      "id": "challenger-ikeda", "kind": "challenger", "catalogId": "ikeda-datamatics",
+      "label": "Datamatics", "verdict": "declined",
+      "lineage": "Black-and-white data-sublime fields",
+      "thesis": "The lexicon as a strobing barcode field.",
+      "palette": ["#000000", "#ffffff"], "materials": ["hairline bars", "monospace numerics"],
+      "viewport": "Barcode field with the phrase pulled into focus.",
+      "case": "Fuses poorly: nothing in Tolkien's world reads as data-sublime.",
+      "risk": "Cold and alien to the audience.",
+      "kept": "Strict value economy: every tone has a job."
+    },
+    {
+      "id": "challenger-goods", "kind": "challenger", "catalogId": "pop-culture-shelf-character-goods-catalog",
+      "label": "Character Goods Catalog", "verdict": "declined",
+      "lineage": "Ranked mascot rosters",
+      "thesis": "Words as a ranked roster of cute characters.",
+      "palette": ["#fde2e4", "#cde8f6", "#ffffff"], "materials": ["pastel grounds", "white keylines"],
+      "viewport": "A pastel grid of word cards.",
+      "case": "Fuses poorly: trivialises the language.",
+      "risk": "Reads as a toy.",
+      "kept": "Fixed furniture per entry: gloss, part of speech, source."
+    },
+    {
+      "id": "challenger-gate", "kind": "challenger", "catalogId": "vernacular-ephemera-boarding-pass-and-gate-board",
+      "label": "Boarding Pass & Gate Board", "verdict": "declined",
+      "lineage": "Airport ephemera",
+      "thesis": "Translation as a ticket with a live board.",
+      "palette": ["#f4f4f2", "#111111", "#ffcc00"], "materials": ["segmented pass", "flap board"],
+      "viewport": "A pass segmenting the phrase.",
+      "case": "Fuses poorly: no link to the audience.",
+      "risk": "Gimmick.",
+      "kept": "One colour reserved strictly for what needs noticing (non-canon words)."
+    },
+    {
+      "id": "challenger-warm", "kind": "challenger", "catalogId": "digital-design-canon-warm-consumer-app-surface",
+      "label": "Warm Consumer App", "verdict": "declined",
+      "lineage": "Friendly consumer app canon",
+      "thesis": "Soft cards, one action colour.",
+      "palette": ["#f6efe7", "#ffffff", "#ff6a3d"], "materials": ["soft cards", "rounded sans"],
+      "viewport": "A card stack with a bottom bar.",
+      "case": "Fuses blandly: loses all of Middle-earth.",
+      "risk": "Generic.",
+      "kept": "The bright colour appears only where something can be pressed."
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "canon": true,
+  "canonCard": {
+    "kind": "canon",
+    "label": "The category standard",
+    "thesis": "A clean two-pane translator in the Google Translate mould, executed impeccably.",
+    "palette": ["#ffffff", "#1f2937", "#2563eb"],
+    "materials": ["clean panes", "system type"],
+    "viewport": "Language pickers above two side-by-side text panes.",
+    "risk": "Indistinguishable from any translator; Middle-earth is absent."
+  },
+  "buildPath": {"value": "code"},
+  "steer": true
+}

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+# the 30 MB Eldamo source file; the generated lexicons in src/data are committed instead
+vendor-data/
+.claude/
+.impeccable/questions/
+.impeccable/hook.cache.json

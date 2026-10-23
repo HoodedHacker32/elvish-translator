@@ -1,0 +1,47 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#2f3a33;color:#dfe6dc;font:15px/1.5 Figtree,sans-serif;
+background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0 2px,transparent 2px 5px),repeating-linear-gradient(-45deg,rgba(0,0,0,.05) 0 2px,transparent 2px 5px)}
+header{height:68px;display:flex;align-items:center;padding:0 40px;gap:40px;border-bottom:1px solid #6f7f71}
+.brand{font:22px Marcellus,serif;letter-spacing:.04em}
+.tabs{display:flex;gap:4px;background:#26302a;padding:4px;border-radius:999px}
+.tabs span{padding:7px 18px;border-radius:999px;font-weight:500;color:#aab6a8}
+.tabs .on{background:#8fcf96;color:#13261a}
+.grid{display:grid;grid-template-columns:420px 1fr;gap:28px;padding:32px 40px}
+.panel{background:#3a473d;border:1px solid #5d6c5f;border-radius:4px;padding:24px}
+label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#a8b5a6}
+textarea{all:unset;display:block;margin-top:12px;font-size:24px;line-height:1.35;height:180px;color:#eef2ec}
+.btn{margin-top:18px;display:inline-block;background:#8fcf96;color:#13261a;font-weight:600;padding:12px 22px;border-radius:999px}
+.out{padding:36px 44px;position:relative}
+.elv{font:64px/1.1 Marcellus,serif;letter-spacing:.01em;margin:18px 0 10px}
+.teng{font:34px Marcellus,serif;color:#9fb0a0;letter-spacing:.2em}
+.canon{display:inline-flex;gap:8px;align-items:center;margin-top:16px;color:#c9d3c6;font-size:14px}
+.canon b{width:10px;height:10px;border-radius:50% 0;background:#8fcf96;transform:rotate(45deg)}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:0 40px}
+.leaf{background:#3a473d;border:1px solid #5d6c5f;border-top:3px solid #8fcf96;padding:16px 18px;border-radius:2px 2px 4px 4px}
+.leaf.neo{border-top-color:#d9b45b}
+.w{font:28px Marcellus,serif}
+.g{color:#c9d3c6;margin-top:2px}
+.m{display:flex;justify-content:space-between;margin-top:12px;font-size:12px;color:#93a291;letter-spacing:.06em}
+.neo .tag{color:#d9b45b}
+.tag{color:#8fcf96}
+svg{position:absolute;left:0;top:0}
+</style></head><body>
+<header><div class="brand">Lambë Edhellen</div><div class="tabs"><span class="on">Sindarin</span><span>Quenya</span></div>
+<div style="margin-left:auto;color:#a8b5a6">Lexicon · Canon phrases · About sources</div></header>
+<div class="grid">
+<div class="panel"><label>English</label><textarea>A star shines on the hour of our meeting</textarea><span class="btn">Translate</span></div>
+<div class="panel out"><label>Sindarin</label>
+<div class="elv">Elen síla lúmenn' omentielvo</div>
+<div class="teng">ᛖᛚᛖᚾ · ᛋᛁᛚᚨ · ᛚᚢᛗᛖᚾᚾ · ᛟᛗᛖᚾᛏᛁᛖᛚᚹᛟ</div>
+<div class="canon"><b></b>Canon phrase — Frodo, <i>The Fellowship of the Ring</i>, I.3 (Quenya)</div>
+</div></div>
+<div class="strip">
+<div class="leaf"><div class="w">elen</div><div class="g">star</div><div class="m"><span>noun</span><span class="tag">ATTESTED · LotR</span></div></div>
+<div class="leaf"><div class="w">síla</div><div class="g">shines</div><div class="m"><span>verb, aorist</span><span class="tag">ATTESTED · LotR</span></div></div>
+<div class="leaf"><div class="w">lúmenn'</div><div class="g">on the hour</div><div class="m"><span>noun + allative</span><span class="tag">ATTESTED · RGEO</span></div></div>
+<div class="leaf neo"><div class="w">omentielvo</div><div class="g">of our meeting</div><div class="m"><span>noun, genitive</span><span class="tag">ATTESTED · LotR</span></div></div>
+</div>
+</body></html>
