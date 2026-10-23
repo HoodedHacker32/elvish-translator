@@ -137,6 +137,9 @@ main { flex: 1; }
 .saved__en { font-size: 12.5px; color: var(--silver-3); }
 
 .output { padding: 30px 40px 32px; min-width: 0; }
+.output > :not(.output__head) { transition: opacity 0.35s var(--ease), filter 0.35s var(--ease); }
+.output.is-typing > :not(.output__head) { opacity: 0.45; filter: saturate(0.6); }
+.typing-hint { text-transform: none; letter-spacing: 0.01em; font-weight: 500; color: var(--silver-3); }
 .output__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; flex-wrap: wrap; }
 .output__actions { display: flex; gap: 2px; margin-right: -10px; flex-wrap: wrap; }
 .output__empty { color: var(--silver-3); font-size: 17px; max-width: 46ch; margin: 28px 0; }

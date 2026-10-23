@@ -104,7 +104,10 @@ function TranslateView({ lang, setLang, text, setText }) {
   const [pulse, setPulse] = useState(0)
   const stageRef = useRef(null)
 
-  useEffect(() => { const t = setTimeout(() => setLive(text), 140); return () => clearTimeout(t) }, [text])
+  // translate once the visitor pauses typing, not on every keystroke
+  const TYPING_PAUSE = 800
+  useEffect(() => { const t = setTimeout(() => setLive(text), TYPING_PAUSE); return () => clearTimeout(t) }, [text])
+  const typing = text.trim() !== live.trim()
   useEffect(() => store.set('saved', saved), [saved])
 
   const result = useMemo(() => translate(live, lang), [live, lang])
@@ -134,7 +137,7 @@ function TranslateView({ lang, setLang, text, setText }) {
           id="english" value={text} rows={4} spellCheck="true" maxLength={400}
           placeholder="Type something to say in Elvish…"
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit(e) }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) submit(e) }}
         />
         <div className="input__row">
           <button type="submit" className="btn btn--primary">Translate <Icon d={I.arrow} /></button>
@@ -180,9 +183,9 @@ function TranslateView({ lang, setLang, text, setText }) {
         )}
       </form>
 
-      <div className="panel output" aria-live="polite">
+      <div className={'panel output' + (typing ? ' is-typing' : '')} aria-live="polite" aria-busy={typing}>
         <div className="output__head">
-          <span className="label">{LANGS[lang]}</span>
+          <span className="label">{LANGS[lang]}{typing && <span className="typing-hint"> · waiting for you to finish typing…</span>}</span>
           {!empty && !hidden && (
             <div className="output__actions">
               <button className="btn btn--quiet" onClick={() => copy(result.line, 'line')}><Icon d={copied === 'line' ? I.check : I.copy} />{copied === 'line' ? 'Copied' : 'Copy'}</button>
