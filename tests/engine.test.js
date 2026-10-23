@@ -226,3 +226,19 @@ test('“to hell with you” and other brush-offs give the same answer as “fuc
     assert.equal(translate(en, 'Q').line, 'Heca!', en)
   }
 })
+
+test('“not” is never silently dropped (that would reverse the meaning)', () => {
+  assert.equal(line('the spider is not dead', 'S'), 'I ungol ú fern')
+  assert.equal(line('the spider is not dead', 'Q'), 'I ungwë ná lá qualin')
+  assert.equal(translate('the spider is not dead', 'S').trust.level, 'caution') // no clear Tolkien pattern for “is not”
+  assert.equal(line('we are not free', 'Q'), 'Elmë nar lá lérinë') // “free” after “are” is a description, not a verb
+  assert.equal(line('I will not sing', 'S'), 'Ú-linnathon')
+  // every negative sentence either shows a negative word or is refused
+  const NEG = /^(ú|lá|avo|áva|baw|vá)\b|^ú-/i
+  for (const en of ['the spider is not dead', 'I am not afraid', 'you are not my friend', 'I did not see the orcs', 'he is not an elf', 'it is not good']) {
+    for (const l of ['S', 'Q']) {
+      const r = translate(en, l)
+      assert.ok(r.trust.level === 'unsafe' || r.items.some((i) => NEG.test(i.el)), `${l}: ${en} → ${r.line}`)
+    }
+  }
+})

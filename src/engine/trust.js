@@ -59,7 +59,13 @@ export function assess(english, result) {
   if (RELATIVE.test(t)) blockers.push('“Who / which / that …” clauses have very few examples in Tolkien’s writing.')
   if (HAVE.test(t)) blockers.push('Elvish has no attested verb “to have”.')
 
+  // Safety net: a “not” that does not reach the Elvish would flip the meaning
+  const NEG_FORMS = /^(ú|lá|avo|áva|baw|vá|ua|um|ui|aua|ava)|^ú-/i
+  if (/(not|never)|n['’]t|cannot/.test(t) && !result.items.some((i) => NEG_FORMS.test(i.el) || i.steps.some((x) => /negat|“not”/.test(x)))) {
+    blockers.push('The “not” in your sentence could not be carried into the Elvish, so the meaning would be reversed.')
+  }
   for (const it of result.items) {
+    if (/no clear example/.test(it.steps.join(' '))) cautions.push(`“${it.el}” (${it.gloss}): Tolkien left no clear example of saying “is not …” this way.`)
     if (it.status === 'G') continue
     if (it.status === 'N') cautions.push(`“${it.el}” (${it.gloss}) is a fan-made word, not Tolkien’s.`)
     else if (it.status === 'E') cautions.push(`“${it.el}” (${it.gloss}) comes from Tolkien’s earlier drafts, not his finished language.`)

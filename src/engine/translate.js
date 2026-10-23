@@ -203,6 +203,7 @@ function compose(text, lang = 'S') {
   let predPlural = false // Quenya: an adjective after “are” agrees in number
   let pendingInf = false // “to” + verb after another verb: an infinitive
   let nameMode = false // after “my name is / called / named”, unknown words are names
+  let afterCopula = false // after “is / are”, a word like “free” is a description, not a verb
 
   const flushNP = () => { if (np && np.leftover) np = null }
 
@@ -228,7 +229,8 @@ function compose(text, lang = 'S') {
     if (unit.kind === 'punct') {
       if (items.length) items[items.length - 1].punct = (items[items.length - 1].punct || '') + toks[unit.i].text
       if (pendingSubject) flushSubject()
-      np = null; pendingSubject = null; tenseHint = null; negate = null; sentenceItems = 0; lastVerb = null; predPlural = false; pendingInf = false; nameMode = false
+      flushNegation()
+      np = null; pendingSubject = null; tenseHint = null; negate = null; sentenceItems = 0; lastVerb = null; predPlural = false; pendingInf = false; nameMode = false; afterCopula = false
       continue
     }
     if (unit.kind === 'phrase') {
@@ -287,6 +289,7 @@ function compose(text, lang = 'S') {
     if (['be', 'am', 'is', 'are', 'was', 'were'].includes(w)) {
       const nextR = nextW ? lookup(idx, nextW) : null
       if (nextR?.feats.ing) { tenseHint = 'cont'; english[enI].dropped = 'folded into the “-ing” verb'; continue }
+      afterCopula = true
       if (lang === 'S') {
         english[enI].dropped = 'Sindarin leaves out “is/are”'
         if (pendingSubject) flushSubject()
@@ -347,6 +350,8 @@ function compose(text, lang = 'S') {
       (sentenceItems === 0 && !np)
     const wantNoun = !!np && (np.article != null || np.poss || np.prep)
     let entry = null
+    if (afterCopula && !r.feats.ing) entry = r.hits.find((h) => h.pos === 'adj') || r.hits.find((h) => h.pos === 'n')
+    if (entry || !['not', 'never'].includes(w)) afterCopula = false
     if (wantNoun) entry = r.hits.find((h) => h.pos === 'n') || r.hits.find((h) => h.pos === 'adj')
     if (!entry && wantVerb) entry = r.hits.find((h) => h.pos === 'v')
     if (!entry && nextW && isNounLike(idx, nextW) && !wantVerb) entry = r.hits.find((h) => h.pos === 'adj')
@@ -407,6 +412,8 @@ function compose(text, lang = 'S') {
     }
 
     if (entry.pos === 'n' || entry.pos === 'adj' && np) {
+      if (pendingSubject) flushSubject()
+      flushNegation()
       emitNounPhrase(entry, r, enI)
       continue
     }
@@ -446,6 +453,7 @@ function compose(text, lang = 'S') {
       prepItem = null; np = null
       continue
     }
+    if (entry.pos !== 'pron') flushNegation()
     const enIdxs = [enI]
     if (np?.caseEn != null) enIdxs.unshift(np.caseEn)
     const item = makeItem(el, null, enIdxs.map((k) => toks[k].text).join(' '), posName(entry.pos), statusOf(entry.st, el !== entry.el), entry.src, steps)
@@ -459,6 +467,7 @@ function compose(text, lang = 'S') {
   }
 
   if (pendingSubject) flushSubject()
+  flushNegation()
   flushNP()
   if (!items.length && toks.length) notes.push('Nothing to translate yet.')
 
@@ -469,6 +478,13 @@ function compose(text, lang = 'S') {
     lang, mode: 'composed', line: capitaliseLine(line), items, english, notes,
     canonElsewhere: others.map((c) => ({ id: c.id, lang: c.lang, elvish: c.elvish, where: c.where })),
     summary: summarise(items),
+  }
+
+  function flushNegation() {
+    if (negate == null) return
+    const [el, st, src] = lang === 'S' ? ['ú', 'A', 'App'] : ['lá', 'D', 'VT']
+    attachEnglish(makeItem(el, null, 'not', 'negative', st, src, ['“not” before a description: Tolkien left no clear example of this pattern']), [negate])
+    negate = null
   }
 
   function flushSubject() {
