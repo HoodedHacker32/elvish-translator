@@ -7,7 +7,9 @@
 const MODAL = /\b(can|could|may|might|must|should|would|shall i|cannot|can't|couldn't|wouldn't|shouldn't)\b/
 const CLAUSE = /\b(if|because|unless|although|though|while|whether|than)\b/
 const RELATIVE = /\b\w+\s+(who|which|whom|whose)\b|\b(that)\s+(is|are|was|were|i|you|he|she|we|they)\b/
-const QUESTION_START = /^(who|what|where|when|why|how|which|can|could|may|would|will|shall|do|does|did|is|are|was|were|have|has)\b/
+// A question starts with a question word, or with a helper verb followed by its subject (“do you…”, “can I…”).
+// A helper verb followed by anything else is a command or statement: “Do not flee”, “Be still”.
+const QUESTION_START = /^(who|what|where|when|why|how|which)\b|^(can|could|may|would|will|shall|do|does|did|is|are|am|was|were|have|has)\s+(i|you|he|she|it|we|they|the|a|an|my|your|his|her|our|their|this|that|these|those|there)\b/
 const HAVE = /\b(have|has|had|having)\b(?!\s+(to|been|come|gone))/
 
 // Plain-English stand-ins for modern things, only ever offered as a suggestion to rephrase

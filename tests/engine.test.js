@@ -202,3 +202,20 @@ test('a message is rated sentence by sentence, so one weak part does not hide th
   // Tolkien's own comma lines are never split
   assert.equal(translate('Speak, friend, and enter', 'S').line, 'Pedo mellon a minno')
 })
+
+test('commands that start with “do” are not mistaken for questions', () => {
+  assert.notEqual(translate('Do not flee', 'S').trust.level, 'unsafe')
+  assert.equal(line('Do not flee', 'S'), 'Avo dhrego')
+  assert.equal(translate('Do you love me?', 'S').trust.level, 'unsafe')
+  assert.equal(translate('do you see the stars', 'S').trust.level, 'unsafe')
+})
+
+test('every example button on the page translates without being refused', async () => {
+  const src = (await import('node:fs')).readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
+  const block = src.match(/const EXAMPLES = \{([\s\S]*?)\n\}/)[1]
+  for (const [, l, list] of block.matchAll(/(S|Q): \[([^\]]*)\]/g)) {
+    for (const [, ex] of list.matchAll(/'([^']*)'/g)) {
+      assert.notEqual(translate(ex, l).trust.level, 'unsafe', `${l}: ${ex}`)
+    }
+  }
+})
