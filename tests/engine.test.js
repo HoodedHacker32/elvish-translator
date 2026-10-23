@@ -246,12 +246,15 @@ test('“not” is never silently dropped (that would reverse the meaning)', () 
 test('source files contain no stray control characters', async () => {
   const fs = await import('node:fs')
   const path = await import('node:path')
-  const root = new URL('../src/', import.meta.url)
+  const { fileURLToPath } = await import('node:url')
+  const root = fileURLToPath(new URL('../src/', import.meta.url))
   const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
     const p = path.join(dir, d.name)
     return d.isDirectory() ? walk(p) : /\.(js|jsx|css)$/.test(d.name) ? [p] : []
   })
-  for (const f of walk(root.pathname.replace(/^\/([A-Za-z]:)/, '$1'))) {
+  const files = walk(root)
+  assert.ok(files.length > 10)
+  for (const f of files) {
     assert.ok(!/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(fs.readFileSync(f, 'utf8')), f)
   }
 })
