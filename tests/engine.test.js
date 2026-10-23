@@ -219,3 +219,10 @@ test('every example button on the page translates without being refused', async 
     }
   }
 })
+
+test('“to hell with you” and other brush-offs give the same answer as “fuck off”', () => {
+  for (const en of ['to hell with you', 'To hell with it!', 'go to hell', 'screw you', 'get lost']) {
+    assert.equal(translate(en, 'S').line, translate('fuck off', 'S').line, en)
+    assert.equal(translate(en, 'Q').line, 'Heca!', en)
+  }
+})

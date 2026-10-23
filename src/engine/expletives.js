@@ -28,7 +28,9 @@ const FEELINGS = {
 }
 
 const PATTERNS = [
-  [/^(?:(?:oh|ah|aw|well) )?(?:fuck|fucking|fuckin|fck|f\*+k)(?: (?:off|you|yourself|away))$|^(?:go away|get lost|piss off|bugger off|sod off|get out|begone|shove off)$/, 'begone'],
+  [/^(?:(?:oh|ah|aw|well) )?(?:fuck|fucking|fuckin|fck|f\*+k)(?: (?:off|you|yourself|away))$|^(?:go away|get lost|piss off|bugger off|sod off|get out|begone|shove off|get stuffed|screw you|sod you|bugger you|naff off|eff off)$/, 'begone'],
+  // “to hell with you” and friends are brush-offs, not swearing at the world: same as “fuck off”
+  [/^(?:(?:oh|ah|well) )?(?:(?:go|get) to hell|to hell with (?:you|ye|it|this|that|them|him|her|all of you|everything)|go to the devil|the devil take you|be damned|go and be damned)$/, 'begone'],
   [/^(?:(?:oh|ah|aw|well|holy) )?(?:fuck|fucking hell|fuckin hell|fuck it|fuck this|fuck me|fuck that|fucking|motherfucker|fck|f\*+k|wtf|what the fuck|what the hell)$/, 'anger'],
   [/^(?:(?:oh|ah|aw|well|holy) )?(?:shit|shite|bullshit|crap|oh crap|sh\*t|shitty|ugh|yuck|gross)$/, 'filth'],
   [/^(?:(?:oh|ah|well) )?(?:god ?damn(?: it)?|goddamn(?:it)?|damn(?: it| you| this)?|dammit|damnit|darn(?: it)?|curse(?:s| it| you)?|bugger|bollocks|blast(?: it)?|son of a bitch)$/, 'curse'],
