@@ -234,11 +234,24 @@ test('“not” is never silently dropped (that would reverse the meaning)', () 
   assert.equal(line('we are not free', 'Q'), 'Elmë nar lá lérinë') // “free” after “are” is a description, not a verb
   assert.equal(line('I will not sing', 'S'), 'Ú-linnathon')
   // every negative sentence either shows a negative word or is refused
-  const NEG = /^(ú|lá|avo|áva|baw|vá)\b|^ú-/i
+  const NEG = /^(ú|lá|avo|áva|baw|vá)(?=$|[\s!.,-])|^ú-/i
   for (const en of ['the spider is not dead', 'I am not afraid', 'you are not my friend', 'I did not see the orcs', 'he is not an elf', 'it is not good']) {
     for (const l of ['S', 'Q']) {
       const r = translate(en, l)
       assert.ok(r.trust.level === 'unsafe' || r.items.some((i) => NEG.test(i.el)), `${l}: ${en} → ${r.line}`)
     }
+  }
+})
+
+test('source files contain no stray control characters', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const root = new URL('../src/', import.meta.url)
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const p = path.join(dir, d.name)
+    return d.isDirectory() ? walk(p) : /\.(js|jsx|css)$/.test(d.name) ? [p] : []
+  })
+  for (const f of walk(root.pathname.replace(/^\/([A-Za-z]:)/, '$1'))) {
+    assert.ok(!/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(fs.readFileSync(f, 'utf8')), f)
   }
 })

@@ -60,8 +60,9 @@ export function assess(english, result) {
   if (HAVE.test(t)) blockers.push('Elvish has no attested verb “to have”.')
 
   // Safety net: a “not” that does not reach the Elvish would flip the meaning
-  const NEG_FORMS = /^(ú|lá|avo|áva|baw|vá|ua|um|ui|aua|ava)|^ú-/i
-  if (/(not|never)|n['’]t|cannot/.test(t) && !result.items.some((i) => NEG_FORMS.test(i.el) || i.steps.some((x) => /negat|“not”/.test(x)))) {
+  // (no \b after the Elvish forms: \b does not work after accented letters like ú)
+  const NEG_FORMS = /^(ú|lá|avo|áva|baw|vá|ua|um|ui|aua|ava)(?=$|[\s!.,-])|^ú-/i
+  if (/\b(not|never)\b|n['’]t\b|\bcannot\b/.test(t) && !result.items.some((i) => NEG_FORMS.test(i.el) || i.steps.some((x) => /negat/.test(x)))) {
     blockers.push('The “not” in your sentence could not be carried into the Elvish, so the meaning would be reversed.')
   }
   for (const it of result.items) {
