@@ -115,7 +115,8 @@ function TranslateView({ lang, setLang, text, setText }) {
   const [reveal, setReveal] = useState(false)
   useEffect(() => setReveal(false), [live, lang])
   const level = result.trust.level
-  const hidden = level === 'unsafe' && !reveal
+  const multi = result.mode === 'multi'
+  const hidden = level === 'unsafe' && !reveal && !multi
   const useEnglish = (en) => { setText(en); setLive(en) }
 
   const submit = (e) => { e?.preventDefault(); setLive(text); setPulse((p) => p + 1) }
@@ -195,6 +196,8 @@ function TranslateView({ lang, setLang, text, setText }) {
           <p className="output__empty">Your Elvish will appear here, word by word, with where each word comes from.</p>
         ) : hidden ? (
           <Refusal result={result} lang={lang} onUse={useEnglish} onReveal={() => setReveal(true)} />
+        ) : multi ? (
+          <Segments segments={result.segments} lang={lang} onUse={useEnglish} />
         ) : (
           <>
             <TrustBanner trust={result.trust} />
@@ -268,7 +271,7 @@ function TranslateView({ lang, setLang, text, setText }) {
         )}
       </div>
 
-      {!empty && !hidden && (
+      {!empty && !hidden && !multi && (
         <ol className="leaves" aria-label="Word by word">
           {result.items.map((it, i) => (
             <li
@@ -290,9 +293,55 @@ function TranslateView({ lang, setLang, text, setText }) {
           ))}
         </ol>
       )}
-      {!empty && !hidden && <Legend />}
+      {!empty && !hidden && !multi && <Legend />}
       <Veins stageRef={stageRef} hover={hover} deps={[result, hover]} />
     </section>
+  )
+}
+
+// A message with several sentences: each one is rated and shown on its own, so one weak part
+// does not hide the rest.
+function Segments({ segments, lang, onUse }) {
+  const [shown, setShown] = useState({})
+  return (
+    <div className="segs">
+      <p className="hint segs__intro">Rated sentence by sentence. Copy and Save use only the parts that translate reliably.</p>
+      <ol className="segs__list">
+        {segments.map((s, i) => {
+          const r = s.result
+          const lvl = r.trust.level
+          const withheld = lvl === 'unsafe' && !shown[i]
+          return (
+            <li key={i} className={`seg-row seg-row--${lvl}`}>
+              <div className="seg-row__head">
+                <span className="seg-row__en">“{s.english}”</span>
+                <span className={`trust-badge trust-badge--${lvl}`}><TrustMark level={lvl} />{TRUST[lvl].label}</span>
+              </div>
+              {withheld ? (
+                <>
+                  <ul className="trust__list">{r.trust.reasons.map((x) => <li key={x}>{x}</li>)}</ul>
+                  {r.trust.suggestions?.map((sg) => (
+                    <button key={sg.english} className="suggest__btn seg-row__suggest" onClick={() => onUse(sg.english)}>
+                      <span className="suggest__elv">{sg.line}</span>
+                      <span className="suggest__en">Say “{sg.english}” instead · {TRUST[sg.level].label}</span>
+                    </button>
+                  ))}
+                  <button className="btn btn--quiet seg-row__reveal" onClick={() => setShown({ ...shown, [i]: true })}>Show the best guess anyway</button>
+                </>
+              ) : (
+                <>
+                  <p className={'seg-row__elv' + (lvl === 'unsafe' ? ' is-guess' : '')} lang={lang === 'S' ? 'sjn' : 'qya'}>{r.line}</p>
+                  <p className="seg-row__tg" aria-hidden="true">{toTengwar(r.line, lang)}</p>
+                  <p className="seg-row__say">{respellLine(r.line, lang)}</p>
+                  {lvl !== 'exact' && r.trust.reasons.length > 0 && <ul className="trust__list">{r.trust.reasons.map((x) => <li key={x}>{x}</li>)}</ul>}
+                  {(r.mode === 'tolkien' || r.mode === 'canon') && <p className="hint">Tolkien’s own line · <cite>{r.canon.where}</cite></p>}
+                </>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </div>
   )
 }
 

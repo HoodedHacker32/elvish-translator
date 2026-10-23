@@ -190,6 +190,7 @@ export const SINDARIN = [
 
   // — verbs —
   ['speak|say|talk|tell', 'ped', 'v', 'A', 'LotR', { cls: 'i', imp: 'pedo' }],
+  ['prepare|make ready|get ready', 'feria', 'v', 'A', 'PE', { cls: 'a' }],
   ['want|wish|desire', 'aníra', 'v', 'D', 'SD', { cls: 'a', note: 'Tolkien wrote aníra “desires” in the King’s Letter' }],
   ['enter', 'minna', 'v', 'A', 'LotR', { cls: 'a', imp: 'minno' }],
   ['open', 'edra', 'v', 'A', 'LotR', { cls: 'a', imp: 'edro' }],

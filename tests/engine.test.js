@@ -186,3 +186,19 @@ test('swearing is answered with an Elvish way to vent, using Tolkien’s words',
   assert.equal(line('the fucking orcs stole my bread', 'S'), 'In yrch pilant bas nín')
   assert.equal(line('the fucking orcs stole my bread', 'Q'), 'I orcor húnë piller massanya')
 })
+
+test('names after “my name is” are kept as names, even in lowercase', () => {
+  const r = translate('my name is inigo montoya', 'S')
+  assert.equal(r.line, 'Eneth nín Inigo Montoya')
+  assert.equal(r.trust.level, 'safe')
+})
+
+test('a message is rated sentence by sentence, so one weak part does not hide the rest', () => {
+  const r = translate('hello. My name is inigo montoya, you killed my father, prepare to die', 'Q')
+  assert.equal(r.mode, 'multi')
+  assert.deepEqual(r.segments.map((s) => s.result.line), ['Aiya.', 'Essenya ná Inigo Montoya', 'Nahtanelyë atarinya', 'Á ferya firë'])
+  const s = translate('hello. My name is inigo montoya, you killed my father, prepare to die', 'S')
+  assert.deepEqual(s.segments.map((x) => x.result.trust.level), ['safe', 'safe', 'caution', 'safe'])
+  // Tolkien's own comma lines are never split
+  assert.equal(translate('Speak, friend, and enter', 'S').line, 'Pedo mellon a minno')
+})

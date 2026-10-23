@@ -210,6 +210,29 @@ main { flex: 1; }
 .suggest__why { display: block; margin: 6px 2px 0; font-size: 13px; color: var(--silver-3); }
 .refusal__reveal { margin-top: 24px; }
 
+/* ——— sentence by sentence ——— */
+.segs { margin-top: 14px; }
+.segs__intro { margin: 0 0 14px; }
+.segs__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.seg-row { padding: 16px 18px; border: 1px solid var(--line-soft); border-radius: var(--leaf-r); background: var(--ground-deep); }
+.seg-row--caution { border-color: rgba(220, 184, 98, 0.35); }
+.seg-row--unsafe { border-color: rgba(211, 148, 119, 0.4); }
+.seg-row__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; align-items: baseline; }
+.seg-row__en { color: var(--silver-2); font-size: 14.5px; }
+.trust-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--silver-2); }
+.trust-badge .trustmark { width: 15px; height: 15px; margin: 0; }
+.trust-badge--caution { color: var(--gold); }
+.trust-badge--caution .trustmark { color: var(--gold); }
+.trust-badge--unsafe { color: var(--rust); }
+.trust-badge--unsafe .trustmark { color: var(--rust); }
+.seg-row__elv { margin: 8px 0 0; font: 36px/1.15 var(--display); color: var(--silver); overflow-wrap: anywhere; }
+.seg-row__elv.is-guess { color: var(--silver-2); text-decoration: underline wavy rgba(211, 148, 119, 0.55); text-decoration-thickness: 1px; text-underline-offset: 8px; }
+.seg-row__tg { margin: 2px 0 0; font: 22px/1.6 var(--tengwar); color: var(--silver-3); overflow-wrap: anywhere; }
+.seg-row__say { margin: 4px 0 0; font-size: 14.5px; font-weight: 500; color: var(--silver-2); letter-spacing: 0.02em; }
+.seg-row__suggest { margin-top: 10px; }
+.seg-row__reveal { margin: 8px 0 0 -10px; }
+@media (max-width: 680px) { .seg-row__elv { font-size: 28px; } }
+
 /* ——— leaf cards ——— */
 .leaves {
   grid-column: 1 / -1; list-style: none; margin: 0; padding: 0;

@@ -202,6 +202,7 @@ function compose(text, lang = 'S') {
   let lastVerb = null // { index, imp }
   let predPlural = false // Quenya: an adjective after “are” agrees in number
   let pendingInf = false // “to” + verb after another verb: an infinitive
+  let nameMode = false // after “my name is / called / named”, unknown words are names
 
   const flushNP = () => { if (np && np.leftover) np = null }
 
@@ -227,7 +228,7 @@ function compose(text, lang = 'S') {
     if (unit.kind === 'punct') {
       if (items.length) items[items.length - 1].punct = (items[items.length - 1].punct || '') + toks[unit.i].text
       if (pendingSubject) flushSubject()
-      np = null; pendingSubject = null; tenseHint = null; negate = null; sentenceItems = 0; lastVerb = null; predPlural = false; pendingInf = false
+      np = null; pendingSubject = null; tenseHint = null; negate = null; sentenceItems = 0; lastVerb = null; predPlural = false; pendingInf = false; nameMode = false
       continue
     }
     if (unit.kind === 'phrase') {
@@ -240,6 +241,8 @@ function compose(text, lang = 'S') {
 
     const w = unit.w
     const enI = unit.i
+    const prevW1 = u > 0 && units[u - 1].kind === 'word' ? units[u - 1].w : null
+    if ((w === 'is' && prevW1 === 'name') || w === 'named' || w === 'called' || (w === 'me' && prevW1 === 'call')) nameMode = true
     const nextU = nextWordUnit(u)
     const nextW = nextU >= 0 && units[nextU].kind === 'word' ? units[nextU].w : null
 
@@ -327,7 +330,7 @@ function compose(text, lang = 'S') {
         negate = null
       }
       if (isSwear(w)) { english[enI].dropped = 'Elvish has no swear words, so this is left out'; continue }
-      const name = toks[enI].cap && !COMMON.has(w)
+      const name = (toks[enI].cap || nameMode) && !COMMON.has(w)
       if (pendingSubject) flushSubject()
       attachEnglish(makeItem(name ? capitalise(w) : `[${w}]`, null, w, name ? 'name' : '—', name ? 'P' : 'G', '', [name ? 'kept as a name' : 'no Tolkien or reconstructed word found']), [enI])
       np = null
@@ -615,7 +618,39 @@ function expletiveResult(x, lang) {
   }
 }
 
-export function translate(text, lang = 'S', { suggestions = true } = {}) {
+// Split a message into sentences (and long comma-joined clauses) so one weak part does not sink the rest.
+function splitSentences(text) {
+  const parts = text.split(/(?<=[.!?;])\s+/).flatMap((s) => {
+    const bits = s.split(/,\s+/)
+    if (bits.length < 2) return [s]
+    const out = [bits[0]]
+    for (const b of bits.slice(1)) {
+      const prev = out[out.length - 1]
+      if (prev.split(/\s+/).length >= 3 && b.split(/\s+/).length >= 3) out.push(b)
+      else out[out.length - 1] = prev + ', ' + b
+    }
+    return out
+  })
+  return parts.map((p) => p.trim()).filter((p) => /[a-z]/i.test(p))
+}
+
+const LEVELS = ['exact', 'idiom', 'safe', 'caution', 'unsafe']
+
+export function translate(text, lang = 'S', { suggestions = true, whole = false } = {}) {
+  // a whole line Tolkien wrote wins before any splitting
+  const parts = whole ? [text] : splitSentences(text)
+  if (parts.length > 1 && !exactPhrase(text, lang) && !findCanon(text).length && !expletive(text, lang)) {
+    const segments = parts.map((p) => ({ english: p, result: translate(p, lang, { suggestions, whole: true }) }))
+    const worst = segments.reduce((w, s) => Math.max(w, LEVELS.indexOf(s.result.trust.level)), 0)
+    const shown = segments.filter((s) => s.result.trust.level !== 'unsafe')
+    const items = shown.flatMap((s) => s.result.items)
+    return {
+      lang, mode: 'multi', segments, items, english: [], notes: [], canonElsewhere: [], closest: [],
+      line: shown.map((s) => s.result.line).join(' '),
+      summary: summarise(items),
+      trust: { level: LEVELS[worst], reasons: [], suggestions: [] },
+    }
+  }
   const swear = expletive(text, lang)
   if (swear) {
     const r = expletiveResult(swear, lang)
