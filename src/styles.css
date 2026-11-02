@@ -349,7 +349,6 @@ main { flex: 1; }
 .english-out { margin: 18px 0 8px; font: 46px/1.15 var(--display); color: var(--silver); text-wrap: balance; overflow-wrap: anywhere; animation: rise 0.9s var(--ease) both; }
 .tengwar--small { font-size: 26px; }
 .say__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.say__head .btn { margin-right: -8px; }
 .leaf__use { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); font-size: 12.5px; line-height: 1.4; color: var(--silver-3); }
 .leaf__use i { font-family: var(--display); font-style: normal; color: var(--silver-2); font-size: 14px; }
 

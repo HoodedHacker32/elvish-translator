@@ -34,7 +34,6 @@ const I = {
   arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
   link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>,
   print: <><path d="M7 9V4h10v5" /><rect x="4" y="9" width="16" height="7" rx="1.5" /><path d="M7 14h10v6H7z" /></>,
-  sound: <><path d="M4 10v4h4l5 4V6L8 10z" /><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" /></>,
 }
 
 function LeafMark({ status }) {
@@ -145,25 +144,6 @@ function DirSwitch({ lang, dir, onSwap, htmlFor }) {
   )
 }
 
-// Read aloud with the browser's own voice, from the plain-English respelling (not perfect Elvish, but close)
-function useSpeech() {
-  const ok = typeof window !== 'undefined' && 'speechSynthesis' in window
-  const [speaking, setSpeaking] = useState(false)
-  const speak = useCallback((respelled) => {
-    if (!ok) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(respelled.toLowerCase().replace(/·/g, ',').replace(/-/g, ' ').replace(/\s+/g, ' '))
-    u.rate = 0.8
-    const voice = window.speechSynthesis.getVoices().find((v) => /en[-_]GB/i.test(v.lang)) || window.speechSynthesis.getVoices().find((v) => /^en/i.test(v.lang))
-    if (voice) u.voice = voice
-    u.onend = () => setSpeaking(false)
-    u.onerror = () => setSpeaking(false)
-    setSpeaking(true)
-    window.speechSynthesis.speak(u)
-  }, [ok])
-  return { ok, speaking, speak }
-}
-
 function TranslateView({ lang, setLang, text, setText, onSwap }) {
   const [live, setLive] = useState(text)
   const [hover, setHover] = useState(null)
@@ -189,7 +169,6 @@ function TranslateView({ lang, setLang, text, setText, onSwap }) {
   const multi = result.mode === 'multi'
   const hidden = level === 'unsafe' && !reveal && !multi
   const useEnglish = (en) => { setText(en); setLive(en) }
-  const speech = useSpeech()
   const [printing, setPrinting] = useState(false)
   // only lines worth carving: Tolkien's own, or built purely from his words and grammar
   const printable = ['exact', 'safe', 'idiom'].includes(level) && !multi
@@ -299,11 +278,6 @@ function TranslateView({ lang, setLang, text, setText, onSwap }) {
             <div className="say">
               <div className="say__head">
                 <span className="label">Say it</span>
-                {speech.ok && (
-                  <button className="btn btn--quiet" onClick={() => speech.speak(sayIt.map((s) => s.say).join(' · '))}>
-                    <Icon d={I.sound} />{speech.speaking ? 'Speaking…' : 'Listen'}
-                  </button>
-                )}
               </div>
               <p className="say__line">
                 {sayIt.map((s, i) => (
@@ -311,7 +285,7 @@ function TranslateView({ lang, setLang, text, setText, onSwap }) {
                 ))}
               </p>
               {tips.length > 0 && <ul className="say__tips">{tips.map((t) => <li key={t}>{t}</li>)}</ul>}
-              <p className="hint">CAPITALS mark the stressed part of each word.{speech.ok && ' Listen uses your browser’s English voice reading the spelling above, so it is a guide, not a perfect Elvish accent.'}</p>
+              <p className="hint">CAPITALS mark the stressed part of each word.</p>
             </div>
 
             {result.mode === 'canon' && (
@@ -442,7 +416,6 @@ function ReverseView({ lang, setLang, text, setText, onSwap }) {
   const typing = text.trim() !== live.trim()
   const result = useMemo(() => toEnglish(live, lang), [live, lang])
   const empty = !live.trim()
-  const speech = useSpeech()
   const tengwar = useMemo(() => toTengwar(live, result.lang || lang), [live, lang, result.lang])
   const submit = (e) => { e?.preventDefault(); setLive(text) }
   const t = TRUST[result.trust.level]
@@ -494,7 +467,6 @@ function ReverseView({ lang, setLang, text, setText, onSwap }) {
             <div className="say">
               <div className="say__head">
                 <span className="label">Say it</span>
-                {speech.ok && <button className="btn btn--quiet" onClick={() => speech.speak(respellLine(live, result.lang || lang))}><Icon d={I.sound} />{speech.speaking ? 'Speaking…' : 'Listen'}</button>}
               </div>
               <p className="say__line">{respellLine(live, result.lang || lang)}</p>
             </div>
