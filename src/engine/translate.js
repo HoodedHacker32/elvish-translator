@@ -61,7 +61,7 @@ const IRREGULAR_NOUN = {
   leaves: 'leaf', halflings: 'halfling', people: 'people', teeth: 'tooth', feet: 'foot', lives: 'life', knives: 'knife',
   ents: 'ent', dunedain: 'dunadan', valar: 'vala', geese: 'goose', mice: 'mouse',
 }
-const IRREGULAR_VERB = {
+export const IRREGULAR_VERB = {
   was: ['be', 'past'], were: ['be', 'past'], am: ['be', 'pres'], is: ['be', 'pres'], are: ['be', 'pres'], been: ['be', 'past'],
   came: ['come', 'past'], went: ['go', 'past'], gone: ['go', 'past'], saw: ['see', 'past'], seen: ['see', 'past'],
   gave: ['give', 'past'], given: ['give', 'past'], made: ['make', 'past'], spoke: ['speak', 'past'], spoken: ['speak', 'past'],

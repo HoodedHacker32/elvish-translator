@@ -285,3 +285,31 @@ test('the exam against Tolkien’s sentences does not get worse', async () => {
   assert.ok(avg('S') >= 0.47, `Sindarin ${avg('S')}`)
   assert.ok(avg('Q') >= 0.35, `Quenya ${avg('Q')}`)
 })
+
+test('Elvish → English: Tolkien’s lines come back with his own English', async () => {
+  const { toEnglish } = await import('../src/engine/reverse.js')
+  assert.equal(toEnglish('Pedo mellon a minno', 'S').english, 'Speak, friend, and enter')
+  assert.equal(toEnglish('Penim vast', 'S').trust.level, 'exact')
+  assert.equal(toEnglish('Mae govannen, mellon', 'S').english, 'Well met, friend')
+})
+
+test('Elvish → English: word by word, undoing sound changes and endings', async () => {
+  const { toEnglish } = await import('../src/engine/reverse.js')
+  const en = (t, l) => toEnglish(t, l).english
+  assert.equal(en('Le melin', 'S'), 'I love you')
+  assert.equal(en('I gor nín', 'S'), 'My ring') // gor is cor softened after the article
+  assert.equal(en('Ú-linnathon', 'S'), 'I will not sing')
+  assert.equal(en('I ngîl glân', 'S'), 'The white stars')
+  assert.equal(en('Hiruvalyë Valimar', 'Q'), 'You will find Valimar')
+  assert.equal(en('I aran Eldaron', 'Q'), 'The king of elves')
+  assert.equal(en('laurië lantar lassi', 'Q'), 'Golden leaves fall')
+  assert.equal(toEnglish('xyz', 'S').trust.level, 'caution') // unknown words are flagged, never guessed
+})
+
+test('round trip: what the app writes, it can read back', async () => {
+  const { toEnglish } = await import('../src/engine/reverse.js')
+  for (const [en, l] of [['I love you', 'S'], ['my friend', 'Q'], ['the elves sing under the stars', 'S'], ['you will find the ring', 'Q']]) {
+    const back = toEnglish(translate(en, l).line, l)
+    assert.ok(back.words.every((w) => w.status !== 'G'), `${en} → ${translate(en, l).line} → ${back.english}`)
+  }
+})
