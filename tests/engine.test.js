@@ -258,3 +258,30 @@ test('source files contain no stray control characters', async () => {
     assert.ok(!/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(fs.readFileSync(f, 'utf8')), f)
   }
 })
+
+test('who/what questions, Quenya “can” and “have”, and “have no” follow Tolkien’s patterns', () => {
+  const lvl = (en, l) => translate(en, l).trust.level
+  assert.equal(line('What have we done?', 'Q'), 'Mana carnelmë?') // cf. Sindarin man agorech?
+  assert.equal(lvl('What have we done?', 'S'), 'caution')
+  assert.equal(lvl('Do you love me?', 'S'), 'unsafe') // yes/no questions: no Tolkien pattern
+  assert.equal(line('I can speak', 'Q'), 'Polin quetë') // Tolkien's own words
+  assert.equal(lvl('I can see you', 'Q'), 'safe')
+  assert.equal(lvl('I can see you', 'S'), 'unsafe') // no Sindarin “can”
+  assert.equal(line('I have a sword', 'Q'), 'Haryan macil')
+  assert.equal(lvl('I have a sword', 'S'), 'unsafe')
+  assert.equal(line('we have no hope', 'S'), 'Penim estel')
+  assert.equal(line('speak, friend, and enter', 'S'), 'Pedo mellon a minno')
+  assert.equal(line('the old darkness', 'Q'), 'Enwina lúmë') // Tolkien's own line
+  assert.match(line('the dark tower', 'Q'), /^I \S+ mindon$/) // adjective first, like his enwina lúmë
+})
+
+test('the exam against Tolkien’s sentences does not get worse', async () => {
+  const { EXAM, score } = await import('../scripts/exam.mjs')
+  const { compose } = await import('../src/engine/translate.js')
+  const avg = (l) => {
+    const rs = EXAM.filter((p) => p.lang === l)
+    return rs.reduce((a, p) => a + score(p.elvish, compose(p.english.replace(/\([^)]*\)|\[[^\]]*\]/g, ' '), l).line), 0) / rs.length
+  }
+  assert.ok(avg('S') >= 0.47, `Sindarin ${avg('S')}`)
+  assert.ok(avg('Q') >= 0.35, `Quenya ${avg('Q')}`)
+})

@@ -221,6 +221,9 @@ export function sindarinVerb(entry, { tense, person, plural }) {
       return neo(base.replace(/nt$/, 'nnen'), 'ending -en (“I”), reconstructed')
     }
     if (plural || person === 'they') return { form: base.replace(/nt$/, 'nner'), steps: [...steps, 'plural ending'], attested: false }
+    // never let the person vanish: “we did” must not read as “he did”
+    if (person === 'we') return neo(base.replace(/nt$/, 'nnem'), 'ending -em (“we”), reconstructed')
+    if (person === 'you') return neo(base.replace(/nt$/, 'nnech'), 'ending -ech (“you”), reconstructed')
     return { form: base, steps, attested: att }
   }
   // present

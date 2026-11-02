@@ -53,11 +53,31 @@ export function assess(english, result) {
 
   const gaps = result.items.filter((i) => i.status === 'G').map((i) => i.gloss)
   if (gaps.length) blockers.push(`No Elvish word exists for ${gaps.map((g) => `“${g}”`).join(', ')}.`)
-  if (/\?\s*$/.test(t) || QUESTION_START.test(t)) blockers.push('Tolkien left almost no examples of questions, so the word order would be a guess.')
-  if (MODAL.test(t) && !/\bwould like\b|\bi'd like\b/.test(t)) blockers.push('There is no settled Elvish way to say “can”, “could”, “must” or “should”; that part would be left out.')
+  const lang = result.lang
+  const isQuestion = /\?\s*$/.test(t) || QUESTION_START.test(t)
+  // Tolkien's own questions start with man “who, what” and keep statement order:
+  // Sindarin man agorech? “what have we done?”, Quenya Sí man i yulma nin enquantuva? “who now will refill the cup for me?”
+  const whoWhat = /^(who|what)\b/.test(t) || (lang === 'Q' && /^how\b/.test(t))
+  if (isQuestion && whoWhat) cautions.push('A question built like Tolkien’s “man agorech?” (what have we done?): question word first, then the sentence. He left only a handful of these.')
+  else if (isQuestion) blockers.push('Tolkien left almost no examples of questions like this, so the word order would be a guess. Questions starting “who” or “what” work.')
+  // Quenya pol- “can” is Tolkien's (polin quetë); the rest have no settled form
+  const modalHit = t.match(MODAL)
+  const quenyaCan = lang === 'Q' && modalHit && /^(can|could|cannot|can't|couldn't)$/.test(modalHit[1])
+  if (modalHit && !quenyaCan && !/\bwould like\b|\bi'd like\b/.test(t)) {
+    blockers.push(lang === 'S' && /^(can|could|cannot|can't)/.test(modalHit[1])
+      ? 'Sindarin has no attested verb for “can”. (Quenya does: try switching to Quenya.)'
+      : 'There is no settled Elvish way to say “could”, “must”, “should” or “may”; that part would be left out.')
+  }
   if (CLAUSE.test(t)) blockers.push('Joining ideas with “if”, “because” or “than” is not something Tolkien showed clearly.')
   if (RELATIVE.test(t)) blockers.push('“Who / which / that …” clauses have very few examples in Tolkien’s writing.')
-  if (HAVE.test(t)) blockers.push('Elvish has no attested verb “to have”.')
+  // “have”: Tolkien's pen- “lack” covers “have no / don't have”; Quenya also has harya- “have”
+  const lacks = result.items.some((i) => /pen-/.test(i.steps.join(' ')) || /^pen/i.test(i.el) && /lack/.test(i.steps.join(' ')))
+  const hasHarya = result.items.some((i) => /harya/.test(i.steps.join(' ')))
+  if (HAVE.test(t) && !isQuestion && !lacks && !hasHarya) {
+    blockers.push(lang === 'S'
+      ? 'Sindarin has no attested verb “to have” (only “to lack”: penim vast “we have no bread”). Quenya has one: try switching to Quenya.'
+      : 'Elvish has no attested verb for this use of “have”.')
+  }
 
   // Safety net: a “not” that does not reach the Elvish would flip the meaning
   // (no \b after the Elvish forms: \b does not work after accented letters like ú)
