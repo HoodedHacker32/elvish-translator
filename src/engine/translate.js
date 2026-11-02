@@ -388,7 +388,7 @@ export function compose(text, lang = 'S') {
     // subject pronouns
     if (SUBJECTS[w] && w !== 'it' || (w === 'it' && nextW && isVerbLike(idx, nextW))) {
       const person = SUBJECTS[w]
-      if (nextW && (isVerbLike(idx, nextW) || MODALS.includes(nextW) || nextW === 'like')) {
+      if (nextW && (isVerbLike(idx, nextW) || MODALS.includes(nextW) || /^(like|likes|liked)$/.test(nextW))) {
         pendingSubject = { person, enI }
         continue
       }
@@ -408,6 +408,39 @@ export function compose(text, lang = 'S') {
     // “would like (to)” / “I like to …” means “want”
     const prevWord = u > 0 && units[u - 1].kind === 'word' ? units[u - 1].w : null
     const likeAsWant = w === 'like' && (prevWord === 'would' || nextW === 'to' || (!!pendingSubject && !nextW))
+    // “like” as a verb is not the preposition sui / ve “as”. Tolkien said it as “it is good to me”:
+    // nás mára nin “I like it”, mára tyen “you like (it)” (PE22). Quenya “I / you like X” → “X ná mára nin / tyen”.
+    // only after a subject pronoun: after a noun it is often a simile (“the stars like jewels”)
+    const likeVerb = /^(like|likes|liked)$/.test(w) && !likeAsWant && nextW && !['a', 'an'].includes(nextW) && !!pendingSubject
+    if (likeVerb) {
+      const dat = lang === 'Q' && w === 'like' && negate == null && { i: 'nin', you: 'tyen' }[pendingSubject?.person]
+      if (!dat) {
+        if (pendingSubject) flushSubject()
+        attachEnglish(makeItem(`[${w}]`, null, 'like', '—', 'G', '', ['Tolkien left no verb “to like”']), [enI])
+        continue
+      }
+      let end = nextU
+      while (end < units.length && units[end].kind !== 'punct') end++
+      const OBJ_AS_SUBJ = { me: 'i', him: 'he', her: 'she', us: 'we', them: 'they' }
+      const obj = units.slice(nextU, end).map((x) => x.kind === 'word' && OBJ_AS_SUBJ[x.w] ? { ...x, w: OBJ_AS_SUBJ[x.w] } : x)
+      const isIt = obj.length === 1 && obj[0].w === 'it'
+      const pred = isIt ? [{ kind: 'word', i: obj[0].i, w: '@nas' }] : [...obj, { kind: 'word', i: enI, w: 'is' }]
+      units.splice(u, end - u, ...pred, { kind: 'word', i: enI, w: 'good' }, { kind: 'word', i: pendingSubject.enI, w: '@dat', dat })
+      pendingSubject = null
+      u--
+      continue
+    }
+    if (w === '@nas') {
+      attachEnglish(makeItem('nás', null, 'it is', 'verb “to be”', 'A', 'PE', ['“it is”, as in Tolkien’s nás mára nin “I like it”']), [enI])
+      afterCopula = true
+      predPlural = false
+      continue
+    }
+    if (w === '@dat') {
+      const meaning = unit.dat === 'nin' ? '“to me”, as in Tolkien’s nás mára nin “I like it” (literally “it is good to me”)' : '“to you”, as in Tolkien’s mára tyen “you like (it)”'
+      attachEnglish(makeItem(unit.dat, null, unit.dat === 'nin' ? 'to me' : 'to you', 'pronoun', 'A', 'PE', [meaning]), [enI])
+      continue
+    }
     const r = lookup(idx, likeAsWant ? 'want' : w, !!pendingSubject || tenseHint === 'cont' || prevW1 === 'not' || (lastVerb == null && sentenceItems > 0 && /^(noun|pronoun|name)/.test(items.at(-1)?.pos || '')))
     if (!r) {
       if (negate != null) {

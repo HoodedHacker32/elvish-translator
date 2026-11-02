@@ -313,3 +313,18 @@ test('round trip: what the app writes, it can read back', async () => {
     assert.ok(back.words.every((w) => w.status !== 'G'), `${en} → ${translate(en, l).line} → ${back.english}`)
   }
 })
+
+test('“like” as a verb follows Tolkien’s “it is good to me”, never the preposition “as”', () => {
+  assert.equal(line('I like it', 'Q'), 'Nás mára nin')
+  assert.equal(line('you like it', 'Q'), 'Nás mára tyen')
+  assert.equal(line('I like bread', 'Q'), 'Massa ná mára nin')
+  assert.equal(line('I like the stars', 'Q'), 'I eleni nar márë nin')
+  for (const [en, l] of [['I like it', 'S'], ['I like bread', 'S'], ['she likes trees', 'Q'], ['we like the stars', 'S'], ['I do not like it', 'Q']]) {
+    const r = translate(en, l)
+    assert.equal(r.trust.level, 'unsafe', `${en} (${l}) → ${r.line}`)
+    assert.ok(!/\b(sui|ve)\b/i.test(r.line), `${en} (${l}) used “as”: ${r.line}`)
+  }
+  assert.match(translate('I like bread', 'S').trust.reasons.join(' '), /switching to Quenya/)
+  assert.equal(line('like a star', 'S'), 'Sui gil') // the preposition still works
+  assert.equal(line('I would like bread', 'Q'), 'Merin massa')
+})

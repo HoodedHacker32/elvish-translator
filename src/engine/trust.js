@@ -51,9 +51,16 @@ export function assess(english, result) {
   const blockers = []
   const cautions = []
 
-  const gaps = result.items.filter((i) => i.status === 'G').map((i) => i.gloss)
-  if (gaps.length) blockers.push(`No Elvish word exists for ${gaps.map((g) => `“${g}”`).join(', ')}.`)
   const lang = result.lang
+  const likeGap = result.items.some((i) => i.status === 'G' && i.gloss === 'like')
+  const gaps = result.items.filter((i) => i.status === 'G' && !(likeGap && i.gloss === 'like')).map((i) => i.gloss)
+  if (gaps.length) blockers.push(`No Elvish word exists for ${gaps.map((g) => `“${g}”`).join(', ')}.`)
+  // Tolkien had no verb “to like”: he said “it is good to me” (Quenya nás mára nin)
+  if (likeGap) {
+    blockers.push(lang === 'S'
+      ? 'Tolkien left no Sindarin verb “to like”. He said it in Quenya as “it is good to me” (nás mára nin): try switching to Quenya.'
+      : 'Tolkien said “like” as “it is good to me / to you” (nás mára nin, mára tyen), so it works for “I like …” and “you like …” only, in the present, without “not”.')
+  }
   const isQuestion = /\?\s*$/.test(t) || QUESTION_START.test(t)
   // Tolkien's own questions start with man “who, what” and keep statement order:
   // Sindarin man agorech? “what have we done?”, Quenya Sí man i yulma nin enquantuva? “who now will refill the cup for me?”
