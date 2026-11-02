@@ -205,7 +205,7 @@ export const SINDARIN = [
   ['keep|hold', 'heb', 'v', 'A', 'App', { cls: 'i', p1: 'hebin' }],
   ['cry|call', 'nalla', 'v', 'A', 'RGEO', { cls: 'a', p1: 'nallon' }],
   ['sing', 'linna', 'v', 'A', 'RGEO', { cls: 'a', fut1: 'linnathon' }],
-  ['make|build|create|craft|forge', 'car', 'v', 'A', 'LotR', { cls: 'i', past: 'echant' }],
+  ['make|do|build|create|craft|forge', 'car', 'v', 'A', 'LotR', { cls: 'i', past: 'echant' }],
   ['draw|write', 'teitha', 'v', 'A', 'LotR', { cls: 'a', past: 'teithant' }],
   ['love', 'mel', 'v', 'D', 'Ety', { cls: 'i' }],
   ['see', 'cen', 'v', 'D', 'Ety', { cls: 'i' }],

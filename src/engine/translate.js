@@ -44,7 +44,7 @@ function buildIndex(rows, phrases) {
   return { words, multi }
 }
 
-const INDEX = { S: buildIndex(SINDARIN_ALL, SINDARIN_PHRASES), Q: buildIndex(QUENYA_ALL, QUENYA_PHRASES) }
+const INDEX = { S: { ...buildIndex(SINDARIN_ALL, SINDARIN_PHRASES), lang: 'S' }, Q: { ...buildIndex(QUENYA_ALL, QUENYA_PHRASES), lang: 'Q' } }
 export const LEXICON = { S: SINDARIN_ALL, Q: QUENYA_ALL }
 export { CANON }
 
@@ -75,7 +75,7 @@ const IRREGULAR_VERB = {
   hid: ['hide', 'past'], hidden: ['hide', 'past'], woke: ['wake', 'past'], awoke: ['awaken', 'past'], sat: ['sit', 'past'],
   lay: ['lie', 'past'], sought: ['seek', 'past'], cut: ['cut', 'pres'], struck: ['strike', 'past'], swore: ['swear', 'past'],
   grew: ['grow', 'past'], bore: ['bear', 'past'], wore: ['wear', 'past'], began: ['begin', 'past'], left: ['leave', 'past'],
-  burnt: ['burn', 'past'], stole: ['steal', 'past'], stolen: ['steal', 'past'], robbed: ['rob', 'past'], forged: ['forge', 'past'], beheld: ['behold', 'past'], understood: ['understand', 'past'],
+  burnt: ['burn', 'past'], done: ['do', 'past'], did: ['do', 'past'], stole: ['steal', 'past'], stolen: ['steal', 'past'], robbed: ['rob', 'past'], forged: ['forge', 'past'], beheld: ['behold', 'past'], understood: ['understand', 'past'],
 }
 const SUBJECTS = { i: 'i', you: 'you', thou: 'you', he: 'he', she: 'he', it: 'he', we: 'we', they: 'they' }
 const POSSESSIVES = { my: 'i', mine: 'i', your: 'you', thy: 'you', his: 'he', her: 'he', its: 'he', our: 'we', their: 'they' }
@@ -98,11 +98,15 @@ const S_MUTATING_PREP = { na: 'soft', di: 'soft', an: 'nasal' }
 
 function tokenize(text) {
   let t = text.toLowerCase().replace(/[’‘]/g, "'")
+  // possessive 's: “orome's horn” → “the horn of orome” (Elvish shows it with “of”)
+  t = t.replace(/\b([a-z]+)'s\s+([a-z]+)\b/g, (m, a, b) => (/^(it|he|she|that|there|what|who)$/.test(a) ? m : `the ${b} of ${a}`))
   for (const [re, rep] of CONTRACTIONS) t = t.replace(re, rep)
   t = t.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[-–—]/g, ' ')
   const out = []
   const raw = text.replace(/[’‘]/g, "'").split(/\s+/)
   const caps = new Set(raw.filter((w) => /^[A-Z][a-z]/.test(w)).map((w) => w.replace(/[^A-Za-z]/g, '').toLowerCase()))
+  // a possessor (“orome's horn”) that is not an Elvish word is a name, capitalised or not
+  for (const m of text.toLowerCase().replace(/[’‘]/g, "'").matchAll(/([a-z]+)'s\s/g)) caps.add(m[1])
   for (const m of t.matchAll(/[a-z']+|[.,!?;:]/g)) {
     const w = m[0].replace(/^'+|'+$/g, '')
     if (!w) continue
@@ -135,7 +139,36 @@ function lemmaCandidates(w) {
   return c
 }
 
-function lookup(idx, w) {
+// Verbs the grammar rules reach for directly, each one Tolkien's own
+const INTERNAL = {
+  S: {
+    '@lack': { el: 'pen', pos: 'v', st: 'A', src: 'PE', ex: { cls: 'i', note: 'Tolkien’s “lack”, as in penim vast “we have no bread”' } },
+    '@do': { el: 'car', pos: 'v', st: 'A', src: 'LotR', ex: { cls: 'i', past: 'echant', note: 'Tolkien’s “do, make”, as in avo garo “don’t do it”' } },
+  },
+  Q: {
+    '@lack': { el: 'pen', pos: 'v', st: 'A', src: 'PE', ex: { cls: 'i', note: 'Tolkien’s “lack”' } },
+    '@have': { el: 'harya', pos: 'v', st: 'D', src: 'PE', ex: { cls: 'a', note: 'Tolkien’s “have”, as in haryalyë “you have”' } },
+    '@can': { el: 'pol', pos: 'v', st: 'A', src: 'PE', ex: { cls: 'i', modal: true, note: 'Tolkien’s “can, be able”, as in polin quetë “I can speak”' } },
+    '@do': { el: 'car', pos: 'v', st: 'A', src: 'LotR', ex: { cls: 'i', note: 'Tolkien’s “do, make”' } },
+  },
+}
+
+function lookup(idx, w, preferVerb = false) {
+  if (w.startsWith('@')) {
+    const e = INTERNAL[idx.lang]?.[w]
+    return e ? { lemma: w, feats: {}, hits: [{ key: w, ...e }] } : null
+  }
+  if (preferVerb && IRREGULAR_VERB[w]) {
+    const [lemma, tense] = IRREGULAR_VERB[w]
+    const hits = idx.words.get(lemma)
+    if (hits?.some((h) => h.pos === 'v')) return { lemma, feats: { tense }, hits }
+  }
+  if (preferVerb) {
+    for (const [lemma, feats] of lemmaCandidates(w)) {
+      const hits = idx.words.get(lemma)
+      if (hits?.some((h) => h.pos === 'v')) return { lemma, feats, hits }
+    }
+  }
   for (const [lemma, feats] of lemmaCandidates(w)) {
     const hits = idx.words.get(lemma)
     if (hits) return { lemma, feats, hits }
@@ -162,7 +195,7 @@ function makeItem(el, en, gloss, pos, st, src, steps = []) {
   return { el, en, gloss, pos, status: st, source: src, sourceLabel: srcLabel(src), steps: steps.filter(Boolean) }
 }
 
-function compose(text, lang = 'S') {
+export function compose(text, lang = 'S') {
   const idx = INDEX[lang]
   const canon = findCanon(text)
   const here = canon.find((c) => c.lang === lang)
@@ -204,6 +237,8 @@ function compose(text, lang = 'S') {
   let pendingInf = false // “to” + verb after another verb: an infinitive
   let nameMode = false // after “my name is / called / named”, unknown words are names
   let afterCopula = false // after “is / are”, a word like “free” is a description, not a verb
+  let lackObject = false // Sindarin object of pen- “lack” is softened (penim vast)
+  let lastImperative = false // “speak … and enter”: a verb joined by “and” to a command is a command too
 
   const flushNP = () => { if (np && np.leftover) np = null }
 
@@ -230,7 +265,7 @@ function compose(text, lang = 'S') {
       if (items.length) items[items.length - 1].punct = (items[items.length - 1].punct || '') + toks[unit.i].text
       if (pendingSubject) flushSubject()
       flushNegation()
-      np = null; pendingSubject = null; tenseHint = null; negate = null; sentenceItems = 0; lastVerb = null; predPlural = false; pendingInf = false; nameMode = false; afterCopula = false
+      np = null; pendingSubject = null; tenseHint = null; negate = null; sentenceItems = 0; lastVerb = null; predPlural = false; pendingInf = false; nameMode = false; afterCopula = false; lackObject = false; lastImperative = false
       continue
     }
     if (unit.kind === 'phrase') {
@@ -272,6 +307,49 @@ function compose(text, lang = 'S') {
     }
     if (w === 'not' || w === 'no' && nextW && isVerbLike(idx, nextW)) { negate = enI; continue }
     if ((w === 'will' || w === 'shall') && nextW) { tenseHint = 'fut'; english[enI].dropped = DROP[w]; continue }
+
+    // “have no X / don't have X” → Tolkien's pen- “lack” (penim vast “we have no bread”)
+    const word2 = nextU >= 0 ? units.slice(nextU + 1).find((x) => x.kind === 'word')?.w : null
+    if (['have', 'has'].includes(w) && (nextW === 'no' || (negate != null && nextW && !isVerbLike(idx, nextW)))) {
+      const lack = INTERNAL[lang]['@lack']
+      if (lack) {
+        if (nextW === 'no') english[units[nextU].i].dropped = 'shown by the verb “lack”'
+        if (negate != null) { english[negate].dropped = 'shown by the verb “lack”'; negate = null }
+        units.splice(u, nextW === 'no' ? 2 : 1, { kind: 'word', i: enI, w: '@lack' })
+        lackObject = true
+        u--
+        continue
+      }
+    }
+    // “have X” as possession: Quenya harya- (Tolkien’s haryalyë “you have”); Sindarin has no such verb
+    const helperHave = nextW && ((SUBJECTS[nextW] && word2 && /(ed|en|ne|t|done|made|come|gone|seen)$/.test(word2)) || isVerbLike(idx, nextW) && /(ed|en|n|t)$/.test(nextW) || ['been', 'done', 'come', 'gone', 'not', 'to'].includes(nextW))
+    if (['have', 'has', 'had'].includes(w) && lang === 'Q' && nextW && !helperHave) {
+      units.splice(u, 1, { kind: 'word', i: enI, w: '@have', past: w === 'had' })
+      u--
+      continue
+    }
+    // “do” is the verb itself unless it helps another verb (“don't do it” → avo garo)
+    const subjectNext = SUBJECTS[nextW] && word2 && isVerbLike(idx, word2)
+    const doIsMain = ['do', 'does', 'did'].includes(w) && (prevW1 === 'not' || !nextW || !(nextW === 'not' || subjectNext || isVerbLike(idx, nextW)) ||
+      (nextW === 'not' && (!word2 || word2 === 'do' || !isVerbLike(idx, word2))))
+    if (doIsMain && !(nextW === 'not')) {
+      units.splice(u, 1, { kind: 'word', i: enI, w: '@do', past: w === 'did' })
+      u--
+      continue
+    }
+    if (doIsMain && nextW === 'not') {
+      // “don't do it”: the second “do” is the verb; this one only carries the “not”
+      english[enI].dropped = DROP[w]
+      continue
+    }
+    // Quenya “can” is Tolkien's pol- “be able” (polin quetë “I can speak”); the next verb is plain
+    if (lang === 'Q' && ['can', 'could'].includes(w) && nextW && (isVerbLike(idx, nextW) || nextW === 'not')) {
+      // “cannot”: the “not” goes before pol- (lá polin hirë), so move it ahead
+      if (nextW === 'not') units.splice(u, 2, units[nextU], { kind: 'word', i: enI, w: '@can', past: w === 'could' })
+      else units.splice(u, 1, { kind: 'word', i: enI, w: '@can', past: w === 'could' })
+      u--
+      continue
+    }
     if (DROP[w] && !(w === 'have' && nextW === 'come')) {
       if (w === 'did') tenseHint = 'past'
       english[enI].dropped = DROP[w]
@@ -287,7 +365,8 @@ function compose(text, lang = 'S') {
 
     // be / is / are
     if (['be', 'am', 'is', 'are', 'was', 'were'].includes(w)) {
-      const nextR = nextW ? lookup(idx, nextW) : null
+      const after = nextW === 'not' || nextW === 'never' ? units.slice(u + 2).find((x) => x.kind === 'word')?.w : nextW
+      const nextR = after ? lookup(idx, after, /ing$/.test(after)) : null
       if (nextR?.feats.ing) { tenseHint = 'cont'; english[enI].dropped = 'folded into the “-ing” verb'; continue }
       afterCopula = true
       if (lang === 'S') {
@@ -297,7 +376,11 @@ function compose(text, lang = 'S') {
       }
       const plural = pendingSubject ? ['we', 'they'].includes(pendingSubject.person) : (lastNounPlural || ((w === 'are' || w === 'were') && sentenceItems === 0))
       if (pendingSubject) flushSubject()
-      attachEnglish(makeItem(plural ? 'nar' : 'ná', null, w, 'verb “to be”', w === 'was' || w === 'were' ? 'D' : 'A', 'VT', [w === 'was' || w === 'were' ? 'past “to be” not attested; present used' : plural ? 'plural “are”' : '“is”']), [enI])
+      const past = w === 'was' || w === 'were'
+      // past: Tolkien wrote nánë “was” (PE22: nánë márië nin “it was well to me”); the plural náner is regular
+      const be = past ? (plural ? ['náner', 'D', 'plural of Tolkien’s nánë “was”'] : ['nánë', 'A', '“was”, as Tolkien wrote it'])
+        : (plural ? ['nar', 'A', 'plural “are”'] : ['ná', 'A', '“is”'])
+      attachEnglish(makeItem(be[0], null, w, 'verb “to be”', be[1], past ? 'PE' : 'VT', [be[2]]), [enI])
       predPlural = plural
       continue
     }
@@ -325,7 +408,7 @@ function compose(text, lang = 'S') {
     // “would like (to)” / “I like to …” means “want”
     const prevWord = u > 0 && units[u - 1].kind === 'word' ? units[u - 1].w : null
     const likeAsWant = w === 'like' && (prevWord === 'would' || nextW === 'to' || (!!pendingSubject && !nextW))
-    const r = lookup(idx, likeAsWant ? 'want' : w)
+    const r = lookup(idx, likeAsWant ? 'want' : w, !!pendingSubject || tenseHint === 'cont' || prevW1 === 'not' || (lastVerb == null && sentenceItems > 0 && /^(noun|pronoun|name)/.test(items.at(-1)?.pos || '')))
     if (!r) {
       if (negate != null) {
         const neg = lang === 'S' ? ['ú', 'A', 'App'] : ['lá', 'D', 'VT']
@@ -371,7 +454,8 @@ function compose(text, lang = 'S') {
 
     if (entry.pos === 'v') {
       const person = pendingSubject?.person
-      let tense = pendingInf ? 'inf' : tenseHint || (r.feats.ing ? 'cont' : r.feats.tense === 'past' ? 'past' : 'pres')
+      let tense = pendingInf ? 'inf' : tenseHint || (unit.past ? 'past' : r.feats.ing ? 'cont' : r.feats.tense === 'past' ? 'past' : 'pres')
+      if (!pendingSubject && !tenseHint && !r.feats.tense && lastImperative && prevW1 === 'and') tense = 'imp'
       if (!pendingSubject && !tenseHint && !r.feats.tense && !r.feats.ing && sentenceItems === 0) tense = 'imp'
       const plural = !person && lastNounPlural
       const v = (lang === 'Q' ? quenyaVerb : sindarinVerb)(entry, { tense, person, plural })
@@ -405,8 +489,9 @@ function compose(text, lang = 'S') {
       }
       if (absorbed) steps.push('subject folded into the verb')
       attachEnglish(makeItem(form, null, glossVerb(toks, enIdxs), 'verb · ' + tenseName(tense), statusOf(entry.st, form !== entry.el && !v.attested, v.neo), entry.src, steps), enIdxs)
+      lastImperative = tense === 'imp'
       lastVerb = { index: items.length - 1, imp: tense === 'imp', giving: /^(give|tell|show|bring|send|grant|offer)$/.test(likeAsWant ? 'want' : r.lemma) }
-      pendingInf = false
+      pendingInf = !!entry.ex?.modal // after “can” the next verb is plain: polin quetë
       pendingSubject = null; tenseHint = null; negate = null; np = null
       continue
     }
@@ -515,7 +600,7 @@ function compose(text, lang = 'S') {
       let af = a.entry.el
       const as = []
       if (lang === 'Q' && plural) { const ap = quenyaAdjPlural(af); af = ap.form; if (ap.step) as.push(ap.step) }
-      as.push('placed after the noun')
+      as.push(lang === 'Q' ? 'placed before the noun, as in Tolkien’s “enwina lúmë” (old darkness)' : 'placed after the noun')
       return { a, af, as }
     })
     if (lang === 'Q') {
@@ -536,19 +621,22 @@ function compose(text, lang = 'S') {
         const a = sindarinArticle(form, plural)
         form = a.form; if (a.step) { steps.push(a.step); attestedForm = false }
         out.push({ item: makeItem(a.article, null, 'the', 'article', 'A', 'LotR', [plural ? 'plural article' : null]), en: [cur.article] })
+      } else if (lackObject && !cur.prepMut) {
+        const m = softMutation(form)
+        if (m.step) { form = m.form; steps.push(`object of pen- “lack”, ${m.step}, as in Tolkien’s penim vast`); attestedForm = false }
       } else if (cur.prepMut && prepItem && !prepItem.used) {
         const m = cur.prepMut === 'soft' ? softMutation(form) : nasalMutation(form)
         if (m.step) { form = m.form; steps.push(`after ${prepItem.el}, ${m.step}`); attestedForm = false }
       }
       if (prepItem) prepItem.used = true
     }
+    const adjOut = adjItems.map(({ a, af, as }) => ({ item: makeItem(af, null, toks[a.enI].text, 'adjective', statusOf(a.entry.st, af !== a.entry.el), a.entry.src, as), en: [a.enI] }))
+    if (lang === 'Q') out.push(...adjOut)
     out.push({
       item: makeItem(form, null, '', posName('n') + (plural ? ', plural' : ''), statusOf(entry.st, !attestedForm && form !== entry.el), entry.src, steps),
       en: enIdxs,
     })
-    for (const { a, af, as } of adjItems) {
-      out.push({ item: makeItem(af, null, toks[a.enI].text, 'adjective', statusOf(a.entry.st, af !== a.entry.el), a.entry.src, as), en: [a.enI] })
-    }
+    if (lang === 'S') out.push(...adjOut)
     if (lang === 'S' && cur.poss) {
       const p = idx.words.get({ i: 'my', you: 'your', we: 'our' }[cur.poss.person] || '')?.[0]
       if (p) out.push({ item: makeItem(p.el, null, toks[cur.poss.enI].text, 'possessive', p.st, p.src, ['follows the noun']), en: [cur.poss.enI] })
@@ -559,6 +647,7 @@ function compose(text, lang = 'S') {
       attachEnglish(o.item, o.en)
     }
     lastNounPlural = plural
+    lackObject = false
     np = null
     prepItem = null
   }

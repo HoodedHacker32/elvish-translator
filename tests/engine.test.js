@@ -68,7 +68,7 @@ test('Quenya adjectives after “are” agree in number', () => {
 })
 
 test('modal verbs and sentence-start words do not break the sentence', () => {
-  assert.equal(line('I cannot find my friends', 'Q'), 'Lá hirin meldorinyar')
+  assert.equal(line('I cannot find my friends', 'Q'), 'Lá polin hirë meldorinyar') // Tolkien's pol- "can": polin quetë
   assert.equal(translate('Where is the king?', 'S').items[0].status, 'G')
 })
 
@@ -184,7 +184,7 @@ test('swearing is answered with an Elvish way to vent, using Tolkien’s words',
   // inside a sentence the rude word maps to Tolkien’s plain meaning, or is left out
   assert.equal(line('this is shit', 'Q'), 'Sina ná söa')
   assert.equal(line('the fucking orcs stole my bread', 'S'), 'In yrch pilant bas nín')
-  assert.equal(line('the fucking orcs stole my bread', 'Q'), 'I orcor húnë piller massanya')
+  assert.equal(line('the fucking orcs stole my bread', 'Q'), 'I húnë orcor piller massanya') // Quenya adjective before the noun
 })
 
 test('names after “my name is” are kept as names, even in lowercase', () => {
