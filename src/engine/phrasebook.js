@@ -40,4 +40,20 @@ export function closestPhrases(english, lang, limit = 3) {
     .map((x) => x.p)
 }
 
+// Where did Tolkien himself use this exact word? The shortest of his lines containing it.
+const bareWord = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’'·]/g, '')
+let USES = null
+export function tolkienUse(word, lang) {
+  if (!USES) {
+    USES = new Map()
+    for (const p of [...TOLKIEN_PHRASES].sort((a, b) => a.elvish.length - b.elvish.length)) {
+      for (const w of p.elvish.split(/[\s,.!?;:-]+/)) {
+        const k = p.lang + ':' + bareWord(w)
+        if (w.length > 1 && !USES.has(k)) USES.set(k, p)
+      }
+    }
+  }
+  return USES.get(lang + ':' + bareWord(word.replace(/[!?.,;:]+$/, ''))) || null
+}
+
 export { TOLKIEN_PHRASES }

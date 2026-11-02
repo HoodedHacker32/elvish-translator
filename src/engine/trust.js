@@ -109,4 +109,5 @@ export const TRUST = {
   safe: { label: 'Built from Tolkien’s words', blurb: 'Every word is Tolkien’s, joined with grammar he showed. Composed by this app, so not a quotation.' },
   caution: { label: 'Partly reconstructed', blurb: 'Readable, but some pieces are not Tolkien’s own. They are listed below.' },
   unsafe: { label: 'Can’t translate this reliably', blurb: 'This needs grammar or words Tolkien never left us.' },
+  gloss: { label: 'Word-by-word meaning', blurb: 'Each Elvish word was found and read back into English. Elvish often leaves out “is” and orders words differently, so read it as a guide.' },
 }

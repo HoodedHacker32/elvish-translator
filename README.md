@@ -9,6 +9,12 @@ Every result is rated so you know how far to trust it:
 - **Partly reconstructed**: works, but lists each piece that is not Tolkien's own.
 - **Can't translate this reliably**: needs words or grammar Tolkien never left; the app says why and offers a safe way to say it.
 
+It also reads Elvish back into English (Tolkien's own lines with his own translation, anything else word by
+word), lists all of Tolkien's known lines, offers share links, a print sheet, and read-aloud pronunciation.
+
+`node scripts/exam.mjs` scores the translator against about 250 sentences Tolkien translated himself, so every
+grammar change can be checked against his own Elvish.
+
 ## Run it
 
 ```bash

@@ -36,11 +36,16 @@ const headWord = (keys) => keys.split('|')[0]
 const FORMS = { S: null, Q: null }
 const SET_PHRASES = new Map()
 
+const noAccents = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+
 function addForm(map, form, rec) {
   if (!form || /\s/.test(form)) return
   const k = plainElvish(form)
-  const list = map.get(k) || map.set(k, []).get(k)
-  if (!list.some((r) => r.en === rec.en && r.entry === rec.entry)) list.push(rec)
+  // filed under the exact spelling and the accent-free one, so “namarie” finds “namárië”
+  for (const key of new Set([k, '~' + noAccents(k)])) {
+    const list = map.get(key) || map.set(key, []).get(key)
+    if (!list.some((r) => r.en === rec.en && r.entry === rec.entry)) list.push(rec)
+  }
 }
 
 function buildForms(lang) {
@@ -140,7 +145,7 @@ function readWord(token, lang, ctx = {}) {
   }
   if (/’$/.test(w)) for (const v of ['a', 'ë', 'e', 'o']) tries.push({ w: w.slice(0, -1) + v, how: 'final vowel elided (’)' })
   for (const t of tries) {
-    const hits = map.get(t.w) || map.get(t.w.normalize('NFD').replace(/[̀-ͯ]/g, '')) || null
+    const hits = map.get(t.w) || map.get('~' + noAccents(t.w)) || null
     if (hits?.length) {
       // after a noun, a describing word is likelier than a noun with the same spelling (i ngîl glân “the stars bright”)
       const h = (ctx.afterNoun && hits.find((x) => x.entry.pos === 'adj')) || hits[0]
