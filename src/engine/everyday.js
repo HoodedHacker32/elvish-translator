@@ -29,6 +29,8 @@ const W = {
   baw: { el: 'Baw!', literal: 'no! don’t!', status: 'A', where: 'Parma Eldalamberon 17, p. 143', note: 'Tolkien’s Sindarin “no!”, a refusal or “don’t!”' },
   diheno: { el: 'Díheno nin', literal: 'forgive me', status: 'D', where: 'Vinyar Tengwar 44 (Tolkien’s Sindarin Lord’s Prayer)', note: 'Built from Tolkien’s díheno ammen “forgive us”. Elves would ask forgiveness rather than say “sorry”' },
   apsene: { el: 'Á nin apsenë', literal: 'forgive me', status: 'D', where: 'Vinyar Tengwar 43 (Tolkien’s Quenya Lord’s Prayer)', note: 'Built like Tolkien’s ámen apsenë “forgive us”, with nin “me”. Elves would ask forgiveness rather than say “sorry”' },
+  manen: { el: 'Manen nalyë?', literal: 'how are you?', status: 'N', where: 'Neo-Quenya, after Tolkien’s manen “how”', note: 'Fan-made, but built on Tolkien’s own question manen lambë Quendion ahyanë? “how did the language of the Elves change?” (The Peoples of Middle-earth). He never wrote “how are you”' },
+  naw: { el: 'Naw', literal: 'yes', status: 'N', where: 'Neo-Sindarin', note: 'Fan-made: Tolkien left no Sindarin “yes” (Eldamo checked). Quenya has his ná' },
   eru: { el: 'Nai Eru tye mánata', literal: 'may God bless you', status: 'C', where: 'Parma Eldalamberon 17, p. 75', note: 'Tolkien’s own words' },
 }
 
@@ -40,10 +42,10 @@ const GROUPS = [
     S: ['navaer', 'novaer'], Q: ['namarie', 'anamarie'] },
   { en: 'good luck|best of luck|good fortune|all the best',
     S: ['navaer'], Q: ['namarie', 'anamarie'],
-    why: 'Tolkien left no “good luck”. The closest wish he wrote is namárië, “be well”.' },
+    why: 'Tolkien left no “good luck” wish. He had words for good fortune (Quenya almë, Sindarin alwed “fortunate”) but never used them as a wish, so the closest he wrote is namárië, “be well”.' },
   { en: 'how are you|how are you doing|how are ya|how r u|hows it going|how is it going|how do you do|whats up|sup|how have you been|are you well|are you ok|are you okay|how are things|how goes it|you alright|you ok',
-    S: ['govannen'], Q: ['anamarie', 'aiya'],
-    why: 'Tolkien left no way to ask “how are you”. Elves greet with a wish instead, so this is the closest thing he wrote.' },
+    S: ['govannen'], Q: ['anamarie', 'manen', 'aiya'],
+    why: 'Tolkien never wrote “how are you”. He did ask questions with manen “how”, but his own closest greeting is this wish.' },
   { en: 'i am fine|im fine|i am good|im good|i am well|im well|i am ok|im ok|i am okay|im okay|fine|fine thanks|fine thank you|good thanks|good thank you|not bad|very well|all good|doing well|im doing well|i am doing well',
     S: ['mae'], Q: ['marienin'] },
   { en: 'nice to meet you|nice to see you|pleased to meet you|good to meet you|glad to meet you|good to see you|glad to see you|great to see you|lovely to meet you|lovely to see you|it is good to see you|its good to see you|its nice to meet you|it is nice to meet you|well met|nice meeting you',
@@ -55,13 +57,13 @@ const GROUPS = [
   { en: 'welcome|welcome home|welcome friend|welcome back|you are welcome here',
     S: ['govannen', 'galdol'], Q: ['alla'] },
   { en: 'yes|yeah|yep|yup|aye|indeed|it is so|of course|certainly|correct|thats right|that is right',
-    S: [], Q: ['na', 'nato'], missing: 'Tolkien left no Sindarin word for “yes”. Quenya has his ná, literally “it is (so)”: try switching to Quenya.' },
+    S: ['naw'], Q: ['na', 'nato'] },
   { en: 'no|nope|nah|no way|not at all|certainly not|of course not',
     S: ['baw'], Q: ['la', 'ui'] },
   { en: 'sorry|im sorry|i am sorry|so sorry|i am so sorry|im so sorry|my apologies|i apologise|i apologize|pardon me|pardon|forgive me|please forgive me|excuse me',
     S: ['diheno'], Q: ['apsene'] },
   { en: 'bless you|god bless you|god bless|may god bless you',
-    S: [], Q: ['eru'], missing: 'Tolkien left no Sindarin blessing. He wrote one in Quenya, nai Eru tye mánata “may God bless you”: try switching to Quenya.' },
+    S: [], Q: ['eru'], missing: 'Tolkien’s Sindarin elia- means to bless a piece of work, not a person, and he left no Sindarin “bless you”. He wrote one in Quenya, nai Eru tye mánata “may God bless you”: try switching to Quenya.' },
 ]
 
 const plain = (s) => s.toLowerCase().replace(/[’']/g, '').replace(/[!?.,;:]+/g, ' ').replace(/\s+/g, ' ').trim()

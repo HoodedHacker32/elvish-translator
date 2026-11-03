@@ -85,9 +85,14 @@ const DROP = {
   did: 'helper verb; past tense goes on the main verb', will: 'future goes on the verb', shall: 'future goes on the verb',
   would: 'not translated', have: 'not translated', has: 'not translated',
   can: 'Elvish does not mark “can” separately', could: 'Elvish does not mark “could” separately',
-  should: 'no attested word for “should”', must: 'no attested word for “must”', might: 'no attested word for “might”',
-  may: 'no attested word for “may” here', very: 'no attested word for “very”', really: 'no attested word for “really”',
-  just: 'not translated', so: 'not translated',
+  // checked against Eldamo: Tolkien left stray words for some of these, but no example of using them with a verb
+  should: 'Tolkien’s only word for this, Sindarin aen “should, could”, has no example with a verb, so it is left out',
+  must: 'Tolkien left no word for “must” (only fan-made ones)', might: 'Tolkien’s Quenya cé “may be” has no example with a verb, so it is left out',
+  may: 'Tolkien’s Quenya nai “may it be that” is only for wishes, so it is left out here',
+  very: 'Tolkien’s “very” (Quenya íta, Sindarin íd) is only used here before a description after “is/are”',
+  really: 'Tolkien’s Quenya naitië “truly” has no example inside a sentence, so it is left out',
+  truly: 'Tolkien’s Quenya naitië “truly” has no example inside a sentence, so it is left out',
+  actually: 'not translated', just: 'not translated', so: 'not translated',
 }
 const MODALS = ['will', 'shall', 'not', 'do', 'does', 'did', 'am', 'is', 'are', 'was', 'were', 'have', 'has', 'can', 'could', 'should', 'must', 'might', 'may', 'would']
 // Capitalised words at the start of a sentence that are ordinary English, not names
@@ -227,6 +232,15 @@ export function compose(text, lang = 'S') {
     else { units.push({ kind: 'word', i, w: toks[i].text }); i++ }
   }
 
+  // sentence adverbs (“I really love you”) are set aside first, so they cannot split a subject from its verb
+  for (let u = units.length - 1; u >= 0; u--) {
+    const w = units[u].kind === 'word' && units[u].w
+    if (['really', 'truly', 'actually'].includes(w) && units.length > 1) {
+      english[units[u].i].dropped = DROP[w]
+      units.splice(u, 1)
+    }
+  }
+
   const nextWordUnit = (u) => { for (let k = u + 1; k < units.length; k++) if (units[k].kind !== 'punct') return k; return -1 }
 
   // pass 2: walk the units, building noun phrases and verbs
@@ -353,6 +367,13 @@ export function compose(text, lang = 'S') {
       if (nextW === 'not') units.splice(u, 2, units[nextU], { kind: 'word', i: enI, w: '@can', past: w === 'could' })
       else units.splice(u, 1, { kind: 'word', i: enI, w: '@can', past: w === 'could' })
       u--
+      continue
+    }
+    // “very” before a description after “is/are”: Tolkien's Quenya íta, Sindarin íd (PE17); he left no example
+    // of where it goes, so the result is flagged
+    if (w === 'very' && afterCopula && nextW && lookup(idx, nextW)?.hits.some((h) => h.pos === 'adj')) {
+      const v = lang === 'Q' ? ['íta', 'A'] : ['íd', 'D']
+      attachEnglish(makeItem(v[0], null, 'very', 'adverb', v[1], 'PE', ['Tolkien’s “very, extremely”; its place before the description is used here for want of an example']), [enI])
       continue
     }
     if (DROP[w] && !(w === 'have' && nextW === 'come')) {

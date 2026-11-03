@@ -355,7 +355,7 @@ test('everyday expressions give the Elvish way to say it, with an honest literal
   assert.match(day('nice to meet you', 'S').line, /^Mae govannen/) // Tolkien's own line
   assert.equal(day('Please', 'Q').line, 'Mecin')
   assert.equal(day('How are you?', 'Q').trust.level, 'idiom') // not refused as a question
-  assert.match(day('How are you?', 'Q').everyday.why, /no way to ask/)
+  assert.match(day('How are you?', 'Q').everyday.why, /never wrote/)
   assert.equal(day('Hello', 'Q').everyday.literal, 'hail! behold!')
   // fan-made answers are never presented as Tolkien's
   const thanks = day('thank you', 'S')
@@ -363,8 +363,10 @@ test('everyday expressions give the Elvish way to say it, with an honest literal
   assert.equal(thanks.trust.level, 'caution')
   assert.match(thanks.trust.reasons[0], /fan-made/)
   // no equivalent at all: refused, with the reason
-  assert.equal(day('yes', 'S').trust.level, 'unsafe')
-  assert.match(day('yes', 'S').trust.reasons[0], /no Sindarin word for “yes”/)
+  assert.equal(day('yes', 'S').line, 'Naw') // fan-made: Tolkien left no Sindarin “yes” (Eldamo checked)
+  assert.match(day('yes', 'S').trust.reasons[0], /fan-made/)
+  assert.equal(day('bless you', 'S').trust.level, 'unsafe') // no Equivalent at all: refused, with the reason
+  assert.match(day('bless you', 'S').trust.reasons[0], /elia-/)
   // Tolkien's own lines still win
   assert.equal(day('well met', 'S').mode, 'canon')
   // every listed expression has an answer or an honest refusal in both languages
@@ -372,4 +374,17 @@ test('everyday expressions give the Elvish way to say it, with an honest literal
     const r = translate(en, l)
     assert.ok(r.mode === 'everyday' || r.mode === 'canon' || r.trust.level === 'unsafe', `${en} (${l}) → ${r.line}`)
   }
+})
+
+test('“no word” claims are checked against Eldamo, including Tolkien’s earlier stages', () => {
+  // a gap names what Tolkien wrote in an earlier stage, when Eldamo has it
+  assert.match(translate('the castle', 'Q').trust.reasons.join(' '), /Early Qenya.*malkor/)
+  assert.match(translate('my computer', 'S').trust.reasons.join(' '), /Eldamo lists no word/)
+  // corrected claims: Tolkien did write “very” (íta, íd) and “how” (manen)
+  assert.equal(translate('the stars are very bright', 'Q').line, 'I eleni nar íta calimë')
+  assert.equal(translate('the stars are very bright', 'Q').trust.level, 'caution')
+  assert.ok(translate('How are you?', 'Q').everyday.alternatives.some((a) => a.el === 'Manen nalyë?'))
+  // “really” is set aside without breaking the sentence
+  assert.equal(translate('I really love you', 'S').line, 'Le melin')
+  assert.equal(translate('very', 'S').trust.level, 'unsafe')
 })

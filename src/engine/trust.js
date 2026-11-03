@@ -4,6 +4,17 @@
 //   caution  works, but leans on a word or ending Tolkien did not write (each one listed)
 //   unsafe   needs something Tolkien never showed; the line is withheld unless the visitor asks for it
 
+import { EARLIER } from '../data/eldamo-earlier.js'
+
+// A meaning with no word in the main lexicon may still have one in an earlier stage of Tolkien's language
+// (checked in Eldamo), so “no word” is never said without saying what does exist.
+function noWord(gloss, lang) {
+  const e = EARLIER[lang]?.[gloss.toLowerCase()]
+  const name = lang === 'S' ? 'Sindarin' : 'Quenya'
+  if (!e) return `“${gloss}”: Eldamo lists no word for this in any stage of Tolkien’s ${name}.`
+  return `“${gloss}”: no word in Tolkien’s finished ${name}. In ${e[1]} he wrote ${e[0]} (${e[2]}), but it was never carried into the finished language, so it is not used here.`
+}
+
 const MODAL = /\b(can|could|may|might|must|should|would|shall i|cannot|can't|couldn't|wouldn't|shouldn't)\b/
 const CLAUSE = /\b(if|because|unless|although|though|while|whether|than)\b/
 const RELATIVE = /\b\w+\s+(who|which|whom|whose)\b|\b(that)\s+(is|are|was|were|i|you|he|she|we|they)\b/
@@ -60,7 +71,8 @@ export function assess(english, result) {
   const lang = result.lang
   const likeGap = result.items.some((i) => i.status === 'G' && i.gloss === 'like')
   const gaps = result.items.filter((i) => i.status === 'G' && !(likeGap && i.gloss === 'like')).map((i) => i.gloss)
-  if (gaps.length) blockers.push(`No Elvish word exists for ${gaps.map((g) => `“${g}”`).join(', ')}.`)
+  for (const g of gaps) blockers.push(noWord(g, lang))
+  if (!result.items.length) blockers.push('Nothing here has its own Elvish word: words like “very” or “really” only work inside a sentence.')
   // Quenya “like” is Tolkien's “it is good to me” (nás mára nin); Sindarin uses mav- from his earliest drafts
   if (likeGap) blockers.push('Tolkien said “like” as “it is good to me / to you” (nás mára nin, mára tyen), so it works for “I like …” and “you like …” only, in the present, without “not”.')
   const isQuestion = /\?\s*$/.test(t) || QUESTION_START.test(t)
