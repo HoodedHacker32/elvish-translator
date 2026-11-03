@@ -7,6 +7,7 @@ import { SOURCES } from '../data/sources.js'
 import { exactPhrase, closestPhrases } from './phrasebook.js'
 import { assess } from './trust.js'
 import { expletive, isSwear } from './expletives.js'
+import { everyday } from './everyday.js'
 import {
   sindarinArticle, sindarinPlural, softMutation, nasalMutation,
   quenyaPlural, quenyaAdjPlural, quenyaPossessive, quenyaCase, quenyaVerb, sindarinVerb, QUENYA_POSS,
@@ -765,6 +766,19 @@ function expletiveResult(x, lang) {
   }
 }
 
+function everydayResult(d, lang) {
+  const c = d.choice
+  const items = [{
+    el: c.el, gloss: c.literal, pos: 'expression', status: c.status,
+    source: c.where, sourceLabel: c.where, steps: [c.note], en: [],
+  }]
+  return {
+    lang, mode: 'everyday', line: c.el, items, english: [], notes: [], canonElsewhere: [],
+    everyday: { literal: c.literal, note: c.note, where: c.where, status: c.status, why: d.why, alternatives: d.alternatives },
+    summary: summarise(items),
+  }
+}
+
 // Split a message into sentences (and long comma-joined clauses) so one weak part does not sink the rest.
 function splitSentences(text) {
   const parts = text.split(/(?<=[.!?;])\s+/).flatMap((s) => {
@@ -786,7 +800,7 @@ const LEVELS = ['exact', 'idiom', 'safe', 'caution', 'unsafe']
 export function translate(text, lang = 'S', { suggestions = true, whole = false } = {}) {
   // a whole line Tolkien wrote wins before any splitting
   const parts = whole ? [text] : splitSentences(text)
-  if (parts.length > 1 && !exactPhrase(text, lang) && !findCanon(text).length && !expletive(text, lang)) {
+  if (parts.length > 1 && !exactPhrase(text, lang) && !findCanon(text).length && !expletive(text, lang) && !everyday(text, lang)) {
     const segments = parts.map((p) => ({ english: p, result: translate(p, lang, { suggestions, whole: true }) }))
     const worst = segments.reduce((w, s) => Math.max(w, LEVELS.indexOf(s.result.trust.level)), 0)
     const shown = segments.filter((s) => s.result.trust.level !== 'unsafe')
@@ -805,12 +819,22 @@ export function translate(text, lang = 'S', { suggestions = true, whole = false 
     r.closest = []
     return r
   }
+  // “hello”, “thank you”: the Elvish way to say it, with its literal meaning (Tolkien's own lines still win)
+  const day = !findCanon(text).some((c) => c.lang === lang) ? everyday(text, lang) : null
+  if (day?.choice) {
+    const r = everydayResult(day, lang)
+    r.trust = assess(text, r)
+    r.closest = []
+    return r
+  }
   const exact = exactPhrase(text, lang)
   let result
   if (exact && exact.lang === lang && !findCanon(text).some((c) => c.lang === lang)) result = tolkienResult(exact, lang)
   else result = compose(text, lang)
 
   result.trust = assess(text, result)
+  // an everyday expression with no equivalent in this language: say so plainly
+  if (day?.missing) result.trust = { level: 'unsafe', reasons: [day.missing], suggestions: [] }
   result.closest = result.mode === 'composed' ? closestPhrases(text, lang) : []
   if (exact && exact.lang !== lang && result.mode === 'composed' && !result.canonElsewhere.length) {
     result.canonElsewhere = [{ id: 'tolkien:' + exact.elvish, lang: exact.lang, elvish: exact.elvish, where: exact.where }]

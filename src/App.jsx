@@ -10,8 +10,8 @@ import { TRUST } from './engine/trust.js'
 
 const LANGS = { S: 'Sindarin', Q: 'Quenya' }
 const EXAMPLES = {
-  S: ['Speak, friend, and enter', 'The stars are bright', 'I will sing to the moon', 'Well met', 'Do not flee'],
-  Q: ['A star shines on the hour of our meeting', 'Farewell! May you find Valimar', 'I see the old tower', 'Hail Eärendil, brightest of stars', 'My friend'],
+  S: ['Speak, friend, and enter', 'Hello', 'The stars are bright', 'I will sing to the moon', 'Nice to meet you', 'Do not flee'],
+  Q: ['A star shines on the hour of our meeting', 'How are you?', 'Farewell! May you find Valimar', 'I see the old tower', 'Please', 'My friend'],
 }
 const STATUS_ORDER = ['C', 'A', 'D', 'E', 'N', 'P', 'G']
 
@@ -305,8 +305,32 @@ function TranslateView({ lang, setLang, text, setText, onSwap }) {
                 </div>
               </div>
             )}
+            {result.mode === 'everyday' && (
+              <>
+                <div className="canon-note">
+                  <LeafMark status={result.everyday.status} />
+                  <div>
+                    <strong>Literally: “{result.everyday.literal}”.</strong> {result.everyday.why ? result.everyday.why + ' ' : ''}{result.everyday.note}. <cite>{result.everyday.where}</cite>.
+                  </div>
+                </div>
+                {result.everyday.alternatives.length > 0 && (
+                  <div className="refusal__block">
+                    <span className="label">Other ways to say it</span>
+                    <ul className="closest">
+                      {result.everyday.alternatives.map((a) => (
+                        <li key={a.el} className="closest__btn closest__btn--static">
+                          <span className="closest__elv" lang={lang === 'S' ? 'sjn' : 'qya'}>{a.el}</span>
+                          <span className="closest__en">literally “{a.literal}” · {respell(a.el, lang)} · {a.status === 'N' ? 'fan-made · ' : ''}{a.note}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
             {result.mode === 'expletive' && (
               <div className="refusal__block">
+                <p className="hint">Elvish has no swear words: Tolkien’s Elves never cursed lightly. This says the same feeling with a word Tolkien wrote.</p>
                 <span className="label">Other ways an Elf might put it</span>
                 <ul className="closest">
                   {result.expletive.alternatives.map((a) => (

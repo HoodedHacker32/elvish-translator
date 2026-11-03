@@ -196,9 +196,9 @@ test('names after “my name is” are kept as names, even in lowercase', () => 
 test('a message is rated sentence by sentence, so one weak part does not hide the rest', () => {
   const r = translate('hello. My name is inigo montoya, you killed my father, prepare to die', 'Q')
   assert.equal(r.mode, 'multi')
-  assert.deepEqual(r.segments.map((s) => s.result.line), ['Aiya.', 'Essenya ná Inigo Montoya', 'Nahtanelyë atarinya', 'Á ferya firë'])
+  assert.deepEqual(r.segments.map((s) => s.result.line), ['Aiya!', 'Essenya ná Inigo Montoya', 'Nahtanelyë atarinya', 'Á ferya firë'])
   const s = translate('hello. My name is inigo montoya, you killed my father, prepare to die', 'S')
-  assert.deepEqual(s.segments.map((x) => x.result.trust.level), ['safe', 'safe', 'caution', 'safe'])
+  assert.deepEqual(s.segments.map((x) => x.result.trust.level), ['idiom', 'safe', 'caution', 'safe'])
   // Tolkien's own comma lines are never split
   assert.equal(translate('Speak, friend, and enter', 'S').line, 'Pedo mellon a minno')
 })
@@ -344,4 +344,32 @@ test('Sindarin “have” is Tolkien’s sav- (sevin “I have”, aw “had”)
   assert.equal(line('I own a horse', 'Q'), 'Öan rocco')
   assert.equal(line('I win', 'Q'), 'Turin')
   assert.equal(line('the elves are wise', 'Q'), 'I Eldar nar sailë') // extra meanings never outrank the main word
+})
+
+test('everyday expressions give the Elvish way to say it, with an honest literal meaning', async () => {
+  const { EVERYDAY_ENGLISH } = await import('../src/engine/everyday.js')
+  const day = (en, l) => translate(en, l)
+  assert.equal(day('Hello', 'Q').line, 'Aiya!')
+  assert.equal(day('hello!', 'S').line, 'Suilad!')
+  assert.equal(day('Goodbye', 'Q').line, 'Namárië!')
+  assert.match(day('nice to meet you', 'S').line, /^Mae govannen/) // Tolkien's own line
+  assert.equal(day('Please', 'Q').line, 'Mecin')
+  assert.equal(day('How are you?', 'Q').trust.level, 'idiom') // not refused as a question
+  assert.match(day('How are you?', 'Q').everyday.why, /no way to ask/)
+  assert.equal(day('Hello', 'Q').everyday.literal, 'hail! behold!')
+  // fan-made answers are never presented as Tolkien's
+  const thanks = day('thank you', 'S')
+  assert.equal(thanks.line, 'Le hannon')
+  assert.equal(thanks.trust.level, 'caution')
+  assert.match(thanks.trust.reasons[0], /fan-made/)
+  // no equivalent at all: refused, with the reason
+  assert.equal(day('yes', 'S').trust.level, 'unsafe')
+  assert.match(day('yes', 'S').trust.reasons[0], /no Sindarin word for “yes”/)
+  // Tolkien's own lines still win
+  assert.equal(day('well met', 'S').mode, 'canon')
+  // every listed expression has an answer or an honest refusal in both languages
+  for (const en of EVERYDAY_ENGLISH) for (const l of ['S', 'Q']) {
+    const r = translate(en, l)
+    assert.ok(r.mode === 'everyday' || r.mode === 'canon' || r.trust.level === 'unsafe', `${en} (${l}) → ${r.line}`)
+  }
 })

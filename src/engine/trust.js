@@ -47,6 +47,12 @@ export function assess(english, result) {
     return { level: 'exact', reasons: [], suggestions: [] }
   }
   if (result.mode === 'expletive') return { level: 'idiom', reasons: [], suggestions: [] }
+  if (result.mode === 'everyday') {
+    const d = result.everyday
+    // a fan-made expression is useful, but never presented as Tolkien's
+    if (d.status === 'N') return { level: 'caution', reasons: [`“${result.line}” is fan-made, not Tolkien’s. ${d.note}.`], suggestions: [] }
+    return { level: 'idiom', reasons: [], suggestions: [] }
+  }
   const t = plain(english)
   const blockers = []
   const cautions = []
@@ -105,7 +111,7 @@ export function assess(english, result) {
 
 export const TRUST = {
   exact: { label: 'Tolkien’s exact words', blurb: 'Quoted from Tolkien’s own writing.' },
-  idiom: { label: 'An Elvish way to say it', blurb: 'Elvish has no swear words: Tolkien’s Elves never cursed lightly. This says the same feeling with a word Tolkien wrote.' },
+  idiom: { label: 'The Elvish way to say it', blurb: 'Not word for word: Elves would not say it the English way. This is what Tolkien’s Elves would say instead, in his words. Its literal meaning is shown below.' },
   safe: { label: 'Built from Tolkien’s words', blurb: 'Every word is Tolkien’s, joined with grammar he showed. Composed by this app, so not a quotation.' },
   caution: { label: 'Partly reconstructed', blurb: 'Readable, but some pieces are not Tolkien’s own. They are listed below.' },
   unsafe: { label: 'Can’t translate this reliably', blurb: 'This needs grammar or words Tolkien never left us.' },
