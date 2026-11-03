@@ -55,12 +55,8 @@ export function assess(english, result) {
   const likeGap = result.items.some((i) => i.status === 'G' && i.gloss === 'like')
   const gaps = result.items.filter((i) => i.status === 'G' && !(likeGap && i.gloss === 'like')).map((i) => i.gloss)
   if (gaps.length) blockers.push(`No Elvish word exists for ${gaps.map((g) => `“${g}”`).join(', ')}.`)
-  // Tolkien had no verb “to like”: he said “it is good to me” (Quenya nás mára nin)
-  if (likeGap) {
-    blockers.push(lang === 'S'
-      ? 'Tolkien left no Sindarin verb “to like”. He said it in Quenya as “it is good to me” (nás mára nin): try switching to Quenya.'
-      : 'Tolkien said “like” as “it is good to me / to you” (nás mára nin, mára tyen), so it works for “I like …” and “you like …” only, in the present, without “not”.')
-  }
+  // Quenya “like” is Tolkien's “it is good to me” (nás mára nin); Sindarin uses mav- from his earliest drafts
+  if (likeGap) blockers.push('Tolkien said “like” as “it is good to me / to you” (nás mára nin, mára tyen), so it works for “I like …” and “you like …” only, in the present, without “not”.')
   const isQuestion = /\?\s*$/.test(t) || QUESTION_START.test(t)
   // Tolkien's own questions start with man “who, what” and keep statement order:
   // Sindarin man agorech? “what have we done?”, Quenya Sí man i yulma nin enquantuva? “who now will refill the cup for me?”
@@ -77,14 +73,11 @@ export function assess(english, result) {
   }
   if (CLAUSE.test(t)) blockers.push('Joining ideas with “if”, “because” or “than” is not something Tolkien showed clearly.')
   if (RELATIVE.test(t)) blockers.push('“Who / which / that …” clauses have very few examples in Tolkien’s writing.')
-  // “have”: Tolkien's pen- “lack” covers “have no / don't have”; Quenya also has harya- “have”
+  // “have”: Tolkien's pen- “lack” covers “have no / don't have”; Quenya harya- and Sindarin sav- cover “have”
   const lacks = result.items.some((i) => /pen-/.test(i.steps.join(' ')) || /^pen/i.test(i.el) && /lack/.test(i.steps.join(' ')))
-  const hasHarya = result.items.some((i) => /harya/.test(i.steps.join(' ')))
-  if (HAVE.test(t) && !isQuestion && !lacks && !hasHarya) {
-    blockers.push(lang === 'S'
-      ? 'Sindarin has no attested verb “to have” (only “to lack”: penim vast “we have no bread”). Quenya has one: try switching to Quenya.'
-      : 'Elvish has no attested verb for this use of “have”.')
-  }
+  // (or a single Elvish verb for a whole “have …” meaning, like órava “have mercy”)
+  const hasHave = result.items.some((i) => /haryalyë|sevin/.test(i.steps.join(' ')) || /\bha(ve|s|d)\b/.test(i.gloss) && i.status !== 'G')
+  if (HAVE.test(t) && !isQuestion && !lacks && !hasHave) blockers.push('Elvish has no attested verb for this use of “have”.')
 
   // Safety net: a “not” that does not reach the Elvish would flip the meaning
   // (no \b after the Elvish forms: \b does not work after accented letters like ú)

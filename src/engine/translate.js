@@ -1,7 +1,7 @@
 // English → Sindarin / Quenya. Deterministic: lexicon lookup plus Tolkien's grammar rules, no guessing.
 import { SINDARIN_PHRASES } from '../data/sindarin.js'
 import { QUENYA_PHRASES } from '../data/quenya.js'
-import { SINDARIN_ALL, QUENYA_ALL } from '../data/lexicon.js'
+import { SINDARIN_ALL, QUENYA_ALL, SINDARIN_WORDS, QUENYA_WORDS } from '../data/lexicon.js'
 import { CANON, findCanon, normaliseEnglish } from '../data/canon.js'
 import { SOURCES } from '../data/sources.js'
 import { exactPhrase, closestPhrases } from './phrasebook.js'
@@ -45,7 +45,7 @@ function buildIndex(rows, phrases) {
 }
 
 const INDEX = { S: { ...buildIndex(SINDARIN_ALL, SINDARIN_PHRASES), lang: 'S' }, Q: { ...buildIndex(QUENYA_ALL, QUENYA_PHRASES), lang: 'Q' } }
-export const LEXICON = { S: SINDARIN_ALL, Q: QUENYA_ALL }
+export const LEXICON = { S: SINDARIN_WORDS, Q: QUENYA_WORDS }
 export { CANON }
 
 // ——— English side ———
@@ -144,6 +144,10 @@ const INTERNAL = {
   S: {
     '@lack': { el: 'pen', pos: 'v', st: 'A', src: 'PE', ex: { cls: 'i', note: 'Tolkien’s “lack”, as in penim vast “we have no bread”' } },
     '@do': { el: 'car', pos: 'v', st: 'A', src: 'LotR', ex: { cls: 'i', past: 'echant', note: 'Tolkien’s “do, make”, as in avo garo “don’t do it”' } },
+    // PE17/173 (1959): sevin “I have”, aw “(he) had”; the stem sav- is worked out from those
+    '@have': { el: 'sav', pos: 'v', st: 'D', src: 'PE', ex: { cls: 'i', p1: 'sevin', past3: 'aw', note: 'Tolkien’s “have” (1959), as in sevin “I have”' } },
+    // Gnomish Lexicon (1910s) mav- “like”, adapted for Sindarin by Eldamo
+    '@like': { el: 'mav', pos: 'v', st: 'E', src: 'GL', ex: { cls: 'i', note: 'Tolkien’s “like” from his earliest drafts (Gnomish, 1910s), adapted for Sindarin' } },
   },
   Q: {
     '@lack': { el: 'pen', pos: 'v', st: 'A', src: 'PE', ex: { cls: 'i', note: 'Tolkien’s “lack”' } },
@@ -321,9 +325,9 @@ export function compose(text, lang = 'S') {
         continue
       }
     }
-    // “have X” as possession: Quenya harya- (Tolkien’s haryalyë “you have”); Sindarin has no such verb
+    // “have X” as possession: Quenya harya- (Tolkien’s haryalyë “you have”), Sindarin sav- (sevin “I have”)
     const helperHave = nextW && ((SUBJECTS[nextW] && word2 && /(ed|en|ne|t|done|made|come|gone|seen)$/.test(word2)) || isVerbLike(idx, nextW) && /(ed|en|n|t)$/.test(nextW) || ['been', 'done', 'come', 'gone', 'not', 'to'].includes(nextW))
-    if (['have', 'has', 'had'].includes(w) && lang === 'Q' && nextW && !helperHave) {
+    if (['have', 'has', 'had'].includes(w) && nextW && !helperHave) {
       units.splice(u, 1, { kind: 'word', i: enI, w: '@have', past: w === 'had' })
       u--
       continue
@@ -388,7 +392,7 @@ export function compose(text, lang = 'S') {
     // subject pronouns
     if (SUBJECTS[w] && w !== 'it' || (w === 'it' && nextW && isVerbLike(idx, nextW))) {
       const person = SUBJECTS[w]
-      if (nextW && (isVerbLike(idx, nextW) || MODALS.includes(nextW) || /^(like|likes|liked)$/.test(nextW))) {
+      if (nextW && (isVerbLike(idx, nextW) || MODALS.includes(nextW) || /^(like|likes|liked|had)$/.test(nextW))) {
         pendingSubject = { person, enI }
         continue
       }
@@ -414,6 +418,11 @@ export function compose(text, lang = 'S') {
     const likeVerb = /^(like|likes|liked)$/.test(w) && !likeAsWant && nextW && !['a', 'an'].includes(nextW) && !!pendingSubject
     if (likeVerb) {
       const dat = lang === 'Q' && w === 'like' && negate == null && { i: 'nin', you: 'tyen' }[pendingSubject?.person]
+      if (lang === 'S') {
+        units.splice(u, 1, { kind: 'word', i: enI, w: '@like', past: w === 'liked' })
+        u--
+        continue
+      }
       if (!dat) {
         if (pendingSubject) flushSubject()
         attachEnglish(makeItem(`[${w}]`, null, 'like', '—', 'G', '', ['Tolkien left no verb “to like”']), [enI])

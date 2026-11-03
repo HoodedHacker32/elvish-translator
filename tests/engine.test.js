@@ -183,7 +183,7 @@ test('swearing is answered with an Elvish way to vent, using Tolkien’s words',
   assert.equal(translate('you bastard', 'Q').line, 'Úvanimo!')
   // inside a sentence the rude word maps to Tolkien’s plain meaning, or is left out
   assert.equal(line('this is shit', 'Q'), 'Sina ná söa')
-  assert.equal(line('the fucking orcs stole my bread', 'S'), 'In yrch pilant bas nín')
+  assert.equal(line('the fucking orcs stole my bread', 'S'), 'In yrch pilanner bas nín') // plural past, like Quenya piller
   assert.equal(line('the fucking orcs stole my bread', 'Q'), 'I húnë orcor piller massanya') // Quenya adjective before the noun
 })
 
@@ -268,7 +268,7 @@ test('who/what questions, Quenya “can” and “have”, and “have no” fol
   assert.equal(lvl('I can see you', 'Q'), 'safe')
   assert.equal(lvl('I can see you', 'S'), 'unsafe') // no Sindarin “can”
   assert.equal(line('I have a sword', 'Q'), 'Haryan macil')
-  assert.equal(lvl('I have a sword', 'S'), 'unsafe')
+  assert.equal(line('I have a sword', 'S'), 'Sevin megil') // Tolkien's sevin “I have”
   assert.equal(line('we have no hope', 'S'), 'Penim estel')
   assert.equal(line('speak, friend, and enter', 'S'), 'Pedo mellon a minno')
   assert.equal(line('the old darkness', 'Q'), 'Enwina lúmë') // Tolkien's own line
@@ -319,12 +319,29 @@ test('“like” as a verb follows Tolkien’s “it is good to me”, never the
   assert.equal(line('you like it', 'Q'), 'Nás mára tyen')
   assert.equal(line('I like bread', 'Q'), 'Massa ná mára nin')
   assert.equal(line('I like the stars', 'Q'), 'I eleni nar márë nin')
-  for (const [en, l] of [['I like it', 'S'], ['I like bread', 'S'], ['she likes trees', 'Q'], ['we like the stars', 'S'], ['I do not like it', 'Q']]) {
+  for (const [en, l] of [['she likes trees', 'Q'], ['I do not like it', 'Q']]) {
     const r = translate(en, l)
     assert.equal(r.trust.level, 'unsafe', `${en} (${l}) → ${r.line}`)
     assert.ok(!/\b(sui|ve)\b/i.test(r.line), `${en} (${l}) used “as”: ${r.line}`)
   }
-  assert.match(translate('I like bread', 'S').trust.reasons.join(' '), /switching to Quenya/)
+  // Sindarin: mav- “like” from Tolkien's earliest drafts, always flagged as such
+  const s = translate('I like bread', 'S')
+  assert.equal(s.line, 'Mevin bas')
+  assert.equal(s.trust.level, 'caution')
+  assert.match(s.trust.reasons.join(' '), /earlier drafts/)
   assert.equal(line('like a star', 'S'), 'Sui gil') // the preposition still works
+  assert.equal(line('the stars like jewels', 'S'), 'I ngîl sui mîr') // a simile, not the verb
   assert.equal(line('I would like bread', 'Q'), 'Merin massa')
+})
+
+test('Sindarin “have” is Tolkien’s sav- (sevin “I have”, aw “had”)', () => {
+  assert.equal(line('I have a ring', 'S'), 'Sevin cor')
+  assert.equal(translate('I have a ring', 'S').trust.level, 'safe')
+  assert.match(line('she had a sword', 'S'), /\baw megil$/)
+  assert.equal(line('we had bread', 'S'), 'Savannem bas') // the person never vanishes
+  assert.equal(line('we have no bread', 'S'), 'Penim vast') // “have no” stays Tolkien's pen- “lack”
+  assert.equal(line('have mercy', 'Q'), 'Órava') // a whole “have …” meaning in one Tolkien verb
+  assert.equal(line('I own a horse', 'Q'), 'Öan rocco')
+  assert.equal(line('I win', 'Q'), 'Turin')
+  assert.equal(line('the elves are wise', 'Q'), 'I Eldar nar sailë') // extra meanings never outrank the main word
 })

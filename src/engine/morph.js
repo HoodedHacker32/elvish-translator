@@ -205,6 +205,8 @@ export function sindarinVerb(entry, { tense, person, plural }) {
     return { form: base, steps, attested: false }
   }
   if (tense === 'past') {
+    // a past form Tolkien wrote only for “he / she / it” (aw “had”)
+    if (ex.past3 && !plural && !['i', 'you', 'we', 'they'].includes(person)) return { form: ex.past3, steps: ['past, as Tolkien wrote it'], attested: true }
     let base
     let att = false
     if (ex.past) { base = ex.past; att = true; steps.push('past, as Tolkien wrote it') }
@@ -213,8 +215,10 @@ export function sindarinVerb(entry, { tense, person, plural }) {
       const last = stem.slice(-1)
       const infix = { d: 'nt', b: 'mp', g: 'nc', t: 'nt', p: 'mp', c: 'nc' }[last]
       base = infix ? stem.slice(0, -1) + infix : stem + 'ant'
-      return person === 'i' ? neo(base.replace(/nt$|mp$|nc$|ant$/, (m) => ({ nt: 'nnen', mp: 'mmen', nc: 'ngen', ant: 'annen' })[m]), 'past with “I”, reconstructed')
-        : neo(base, 'past by nasal infix, reconstructed')
+      // the ending doubles the nasal: -nt → -nn-, -mp → -mm-, -nc → -ng-; never let the person vanish
+      const ending = { i: 'en', we: 'em', you: 'ech' }[person] || (plural || person === 'they' ? 'er' : '')
+      if (!ending) return neo(base, 'past by nasal infix, reconstructed')
+      return neo(base.replace(/nt$|mp$|nc$/, (m) => ({ nt: 'nn', mp: 'mm', nc: 'ng' })[m]) + ending, `past by nasal infix, ending -${ending}, reconstructed`)
     }
     if (person === 'i') {
       if (ex.past1) return { form: ex.past1, steps: ['“I …-ed”, as Tolkien wrote it'], attested: true }
@@ -227,12 +231,15 @@ export function sindarinVerb(entry, { tense, person, plural }) {
     return { form: base, steps, attested: att }
   }
   // present
+  // an -i- ending turns a and o in the stem to e, as in Tolkien's sevin “I have” (sav-), cerin (car-), gerin (gar-)
+  const affected = aStem ? stem : stem.replace(/[ao]/g, 'e')
+  const affNote = affected !== stem ? ', with a/o turned to e before -i (as in Tolkien’s sevin from sav-)' : ''
   if (person === 'i') {
     if (ex.p1) return { form: ex.p1, steps: ['“I …”, as Tolkien wrote it'], attested: true }
-    return { form: aStem ? stem.slice(0, -1) + 'on' : stem + 'in', steps: [aStem ? 'present, ending -on (“I”)' : 'present, ending -in (“I”)'], attested: false }
+    return { form: aStem ? stem.slice(0, -1) + 'on' : affected + 'in', steps: [aStem ? 'present, ending -on (“I”)' : 'present, ending -in (“I”)' + affNote], attested: false }
   }
-  if (person === 'we') return neo(aStem ? stem + 'm' : stem + 'im', 'present, ending -m (“we”), reconstructed')
-  if (plural || person === 'they') return { form: aStem ? stem + 'r' : stem + 'ir', steps: ['present, plural ending'], attested: false }
+  if (person === 'we') return neo(aStem ? stem + 'm' : affected + 'im', 'present, ending -m (“we”), reconstructed' + affNote)
+  if (plural || person === 'they') return { form: aStem ? stem + 'r' : affected + 'ir', steps: ['present, plural ending' + affNote], attested: false }
   if (aStem) return { form: stem, steps: ['present'], attested: true }
   const isMono = (stem.match(/[aeiouy]+/g) || []).length === 1
   return isMono

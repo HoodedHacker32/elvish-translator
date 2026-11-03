@@ -81,7 +81,13 @@ mine yours is are am was were be been being have has had that this these those w
 how there here so very as like than then if because all some any each every own self myself yourself thee thou thy'''.split())
 
 
-def keys_from(gloss):
+# Verbs only: grammar words that are still safe as a whole meaning ("own" = possess)
+VERB_OK = {'own'}
+# Verbs only: "trust in" also answers plain "trust" (the head keeps its meaning with these)
+HEAD_OF = {'in': {'trust', 'believe'}, 'for': {'hope', 'long', 'yearn', 'wait'}, 'at': {'laugh'}, 'to': {'listen'}}
+
+
+def keys_from(gloss, verb=False):
     if not gloss:
         return []
     g = re.sub(r'\([^)]*\)|\[[^\]]*\]', ' ', gloss)
@@ -95,8 +101,18 @@ def keys_from(gloss):
         p = re.sub(r'\s+', ' ', p)
         if not p or len(p.split()) > 3 or not re.match(r"^[a-z][a-z' -]*$", p):
             continue
-        if any(t in FUNCTION for t in p.split()):
-            continue
+        words = p.split()
+        if any(t in FUNCTION for t in words):
+            # a verb's multi-word meaning with a real word in it ("have mercy", "be in love") only ever matches
+            # as a whole phrase, so it cannot override the grammar; a lone grammar word ("have", "can") would
+            if not verb or (all(t in FUNCTION for t in words) and p not in VERB_OK):
+                continue
+            if len(words) == 2 and words[0] in HEAD_OF.get(words[1], ()) and words[0] not in out:
+                out.append(words[0])
+            # but never a meaning ending in a grammar word ("go to", "hope for"): as a phrase it would grab
+            # ordinary English like “I go to the forest” or “no hope for myself”
+            if words[-1] in FUNCTION and p not in VERB_OK:
+                continue
         if p not in out:
             out.append(p)
     return out
@@ -111,7 +127,21 @@ def plural_of(word):
     if not forms:
         return None
     lower = [f for f in forms if f[:1].islower()] or forms
-    return max(set(lower), key=lower.count)
+    # most common first; ties go to a plain spelling (no "(i)", ī, ñ or œ), then to the form closest to the
+    # singular (rasg → resg, not regain), then alphabetically, so every rebuild picks the same form
+    odd = lambda f: bool(re.search(r'[()āēīōūñœ]', f))
+    sing = word.get('v') or ''
+    return min(dict.fromkeys(lower), key=lambda f: (-lower.count(f), odd(f), distance(f, sing), f))
+
+
+def distance(a, b):
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
 
 
 def notes_for(mark):
@@ -152,7 +182,8 @@ def convert(lang_late, lang_neo):
         v = w.get('v') or ''
         if v.startswith('-') or (pos != 'v' and v.endswith('-')) or ' ' in v.strip():
             continue
-        keys = keys_from(w.get('gloss')) + [k for k in keys_from(w.get('ngloss')) if k not in keys_from(w.get('gloss'))]
+        vb = pos == 'v'
+        keys = keys_from(w.get('gloss'), vb) + [k for k in keys_from(w.get('ngloss'), vb) if k not in keys_from(w.get('gloss'), vb)]
         if not keys:
             continue
         el = clean_form(v, pos == 'v')
