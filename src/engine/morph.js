@@ -101,7 +101,7 @@ export function quenyaPossessive(word, sfx) {
 }
 
 const CASES = {
-  all: { v: 'nna', c: 'enna', pl: 'nnar', label: 'allative “to, toward”' },
+  all: { v: 'nna', c: 'enna', pl: 'nnar', label: 'allative “to, towards”' },
   abl: { v: 'llo', c: 'ello', pl: 'llon', label: 'ablative “from”' },
   loc: { v: 'ssë', c: 'essë', pl: 'ssen', label: 'locative “in, at”' },
   ins: { v: 'nen', c: 'inen', pl: 'inen', label: 'instrumental “by, with”' },

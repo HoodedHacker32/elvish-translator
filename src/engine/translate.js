@@ -20,16 +20,56 @@ import {
 const RANK = { phrase: -1, A: 0, D: 1, E: 2, N: 3 }
 const rankOf = (e) => (e.pos === 'phrase' ? RANK.phrase : RANK[e.st] ?? 4) + (e.ex?.note?.includes('archaic') ? 0.5 : 0)
 
+// UK and US spellings of the same word. Eldamo's glosses mix the two (Tolkien wrote British English,
+// Eldamo is edited in American), so a word is looked up under both: “colour” finds a “color” gloss and back.
+const SPELLING_PAIRS = {
+  grey: 'gray', plough: 'plow', mould: 'mold', defence: 'defense', offence: 'offense', axe: 'ax', whilst: 'while',
+  amongst: 'among', jewellery: 'jewelry', pyjamas: 'pajamas', cheque: 'check', tyre: 'tire', storey: 'story',
+  learnt: 'learned', dreamt: 'dreamed', spelt: 'spelled', spoilt: 'spoiled', leapt: 'leaped', smelt: 'smelled',
+  practise: 'practice', licence: 'license', sceptre: 'scepter', moustache: 'mustache', manoeuvre: 'maneuver',
+}
+const SPELLING_BACK = Object.fromEntries(Object.entries(SPELLING_PAIRS).map(([uk, us]) => [us, uk]))
+// two or more vowel groups before the l: travel·led, cancel·led, but not fil·led (which is not “filed”)
+const MANY_SYLLABLES = /^[^aeiouy]*[aeiouy]+[^aeiouy]+[aeiouy]/
+
+export function spellingVariants(w) {
+  const v = new Set()
+  if (SPELLING_PAIRS[w]) v.add(SPELLING_PAIRS[w])
+  if (SPELLING_BACK[w]) v.add(SPELLING_BACK[w])
+  // colour/color, honours/honors (not four, hour, flour, door, floor)
+  let m
+  if ((m = w.match(/^(.{2,}[^aeiou])our(s|ed|ing|able|ful)?$/)) && !/^(fl|dev|det|cont|param)$/.test(m[1])) v.add(`${m[1]}or${m[2] || ''}`)
+  if ((m = w.match(/^(.{2,}[^aeiou])or(s|ed|ing|able|ful)?$/))) v.add(`${m[1]}our${m[2] || ''}`)
+  // traveller/traveler, travelled/traveled, travelling/traveling
+  if ((m = w.match(/^(.+[aeiou])ll(er|ers|ed|ing)$/)) && MANY_SYLLABLES.test(m[1] + 'l')) v.add(`${m[1]}l${m[2]}`)
+  if ((m = w.match(/^(.+[aeiou])l(er|ers|ed|ing)$/)) && MANY_SYLLABLES.test(m[1] + 'l') && !/l$/.test(m[1])) v.add(`${m[1]}ll${m[2]}`)
+  // centre/center, theatre/theater, fibre/fiber
+  if ((m = w.match(/^(.{2,}[bt])re(s|d)?$/))) v.add(`${m[1]}er${m[2] || ''}`)
+  if ((m = w.match(/^(.{2,}[bt])er(s)?$/))) v.add(`${m[1]}re${m[2] || ''}`)
+  // realise/realize, recognised/recognized, organisation/organization
+  if (w.length >= 6 && (m = w.match(/^(.+)is(e|es|ed|ing|ation|ations)$/))) v.add(`${m[1]}iz${m[2]}`)
+  if (w.length >= 6 && (m = w.match(/^(.+)iz(e|es|ed|ing|ation|ations)$/))) v.add(`${m[1]}is${m[2]}`)
+  v.delete(w)
+  return [...v]
+}
+
 function buildIndex(rows, phrases) {
   const words = new Map()
   const multi = new Map()
   const addMulti = (key, entry) => { const cur = multi.get(key); if (!cur || rankOf(entry) < rankOf(cur)) multi.set(key, entry) }
+  // every gloss is found under its UK and its US spelling alike, once each
+  const addWord = (key, entry) => {
+    for (const k of [key, ...spellingVariants(key)]) {
+      const list = words.get(k) || words.set(k, []).get(k)
+      if (!list.some((e) => e.el === entry.el && e.pos === entry.pos && e.src === entry.src)) list.push(entry)
+    }
+  }
   for (const [keys, el, st, src] of phrases) {
     for (const k of keys.split('|')) {
       const key = normaliseEnglish(k)
       const entry = { key, el, pos: 'phrase', st, src }
       if (key.includes(' ')) addMulti(key, entry)
-      else (words.get(key) || words.set(key, []).get(key)).push(entry)
+      else addWord(key, entry)
     }
   }
   for (const [keys, el, pos, st, src, ex] of rows) {
@@ -38,7 +78,7 @@ function buildIndex(rows, phrases) {
       if (!key) continue
       const entry = { key, el, pos, st, src, ex }
       if (key.includes(' ')) addMulti(key, entry)
-      else (words.get(key) || words.set(key, []).get(key)).push(entry)
+      else addWord(key, entry)
     }
   }
   for (const list of words.values()) list.sort((a, b) => rankOf(a) - rankOf(b))
@@ -141,7 +181,8 @@ function lemmaCandidates(w) {
   if (w.endsWith('est')) c.push([w.slice(0, -3), { superlative: true }], [w.slice(0, -2), { superlative: true }])
   if (w.endsWith('ily')) c.push([w.slice(0, -3) + 'y', {}])
   if (w.endsWith('ly')) c.push([w.slice(0, -2), {}], [w.slice(0, -2) + 'e', {}])
-  if (w.endsWith('er') && w.length > 4) c.push([w.slice(0, -2), {}], [w.slice(0, -1), {}])
+  // “brighter” → bright; only ever an adjective, so “traveler” never becomes the verb “travel”
+  if (w.endsWith('er') && w.length > 4) c.push([w.slice(0, -2), { comparative: true }], [w.slice(0, -1), { comparative: true }])
   return c
 }
 
@@ -176,11 +217,13 @@ function lookup(idx, w, preferVerb = false) {
   if (preferVerb) {
     for (const [lemma, feats] of lemmaCandidates(w)) {
       const hits = idx.words.get(lemma)
+      if (feats.comparative) continue
       if (hits?.some((h) => h.pos === 'v')) return { lemma, feats, hits }
     }
   }
   for (const [lemma, feats] of lemmaCandidates(w)) {
     const hits = idx.words.get(lemma)
+    if (hits && feats.comparative && !hits.some((h) => h.pos === 'adj')) continue
     if (hits) return { lemma, feats, hits }
   }
   return null

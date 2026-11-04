@@ -388,3 +388,18 @@ test('“no word” claims are checked against Eldamo, including Tolkien’s ear
   assert.equal(translate('I really love you', 'S').line, 'Le melin')
   assert.equal(translate('very', 'S').trust.level, 'unsafe')
 })
+
+test('UK and US spellings find the same words', () => {
+  // Eldamo glosses mix the two; either spelling must give the same Elvish
+  assert.equal(line('The grey colour', 'S'), line('The gray color', 'S'))
+  assert.notEqual(line('The grey colour', 'S').includes('['), true)
+  // a word Tolkien never glossed gets his nearest one offered, whichever way it is spelt
+  for (const w of ['traveller', 'traveler']) {
+    const r = translate(`Well met, ${w}`, 'S')
+    assert.equal(r.trust.level, 'unsafe')
+    assert.ok(r.trust.suggestions.some((s) => s.english === 'Well met, wanderer'), w)
+  }
+  assert.equal(line('Well met, wanderer', 'S'), 'Mae govannen, randir')
+  // no false pairs: “filled” is not “filed”, “four” is not “for”
+  assert.notEqual(line('the floor', 'S'), line('the flour', 'S'))
+})

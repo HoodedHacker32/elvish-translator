@@ -30,6 +30,10 @@ const CLOSEST_THING = {
   phone: null, computer: null, internet: null, money: 'gold', coin: 'gold', cash: 'gold',
 }
 
+// Words Tolkien never glossed whose meaning one of his words covers closely (checked in Eldamo)
+const WANDERER = { english: 'wanderer', why: 'Tolkien left no word for “traveller”; his nearest is Sindarin randir “wanderer, pilgrim”, as in Mithrandir (Parma Eldalamberon 17)' }
+const NEAREST = { traveller: WANDERER, travellers: { ...WANDERER, english: 'wanderers' }, traveler: WANDERER, travelers: { ...WANDERER, english: 'wanderers' }, wayfarer: WANDERER }
+
 const plain = (s) => s.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').trim()
 
 export function suggestRephrase(english) {
@@ -48,6 +52,14 @@ export function suggestRephrase(english) {
   }
   const modal = t.match(/^(i|you|we|they|he|she)\s+(?:can|could|must|should|might|may|would)\s+(.+)$/)
   if (modal && !/^like\b/.test(modal[2])) out.push({ english: `${modal[1]} ${modal[2]}`, why: 'Tolkien left no settled way to say “can / must / should”; the plain verb is safe' })
+  // a word Tolkien never glossed, swapped for his nearest one anywhere in the sentence
+  for (const [word, near] of Object.entries(NEAREST)) {
+    const re = new RegExp(`\\b${word}\\b`)
+    if (re.test(t)) {
+      const english = t.replace(re, near.english)
+      out.push({ english: english[0].toUpperCase() + english.slice(1), why: near.why })
+    }
+  }
   const where = t.match(/^where\s+(?:is|are)\s+(.+)$/)
   if (where) out.push({ english: `I seek ${where[1]}`, why: 'Tolkien left almost no questions; a statement is safe' })
   return out
