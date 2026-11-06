@@ -279,6 +279,42 @@ def adopt_earlier(rows, l_earlier, note):
     return rows + sorted(added.values(), key=lambda x: x[1].lower())
 
 
+# British spelling for everything shown to visitors (Tolkien wrote British English; Eldamo is edited in
+# American). The translator looks words up under both spellings, so this changes only what is displayed.
+UK_WORDS = {'color': 'colour', 'jewelry': 'jewellery', 'gray': 'grey', 'plow': 'plough', 'mold': 'mould',
+            'defense': 'defence', 'offense': 'offence', 'ax': 'axe', 'center': 'centre', 'theater': 'theatre',
+            'fiber': 'fibre', 'meter': 'metre', 'scepter': 'sceptre', 'specter': 'spectre', 'somber': 'sombre',
+            'luster': 'lustre', 'saber': 'sabre', 'traveler': 'traveller', 'traveling': 'travelling',
+            'traveled': 'travelled', 'pajamas': 'pyjamas', 'mustache': 'moustache', 'maneuver': 'manoeuvre'}
+NOT_ISE = {'size', 'seize', 'prize', 'capsize', 'baize', 'maize', 'citize'}
+
+
+def to_uk(text):
+    def word(m):
+        w = m.group(0)
+        low = w.lower()
+        stem, end = re.match(r'^(.*?)(s|ed|ing|ful)?$', low).groups()
+        out = None
+        if low in UK_WORDS:
+            out = UK_WORDS[low]
+        elif stem in UK_WORDS:
+            out = UK_WORDS[stem] + (end or '')
+        elif re.match(r'^[a-z]{2,}[^aeiou]or(s|ed|ing|ful|able)?$', low) and re.sub(r'(s|ed|ing|ful|able)$', '', low) in OR_OUR:
+            out = re.sub(r'or((s|ed|ing|ful|able)?)$', r'our\1', low)
+        elif re.match(r'^[a-z]{3,}(iz|yz)(e|es|ed|ing|ation|ations|er|ers)$', low) and not any(low.startswith(x) for x in NOT_ISE):
+            out = re.sub(r'(i|y)z(e|es|ed|ing|ation|ations|er|ers)$', r'\1s\2', low)
+        if not out:
+            return w
+        return out[0].upper() + out[1:] if w[0].isupper() else out
+    return re.sub(r'[A-Za-z]+', word, text) if isinstance(text, str) else text
+
+
+OR_OUR = {'color', 'honor', 'favor', 'armor', 'labor', 'valor', 'harbor', 'neighbor', 'odor', 'vapor', 'splendor',
+          'humor', 'rumor', 'savior', 'endeavor', 'flavor', 'behavior', 'clamor', 'rancor', 'rigor', 'vigor',
+          'ardor', 'candor', 'fervor', 'parlor', 'tumor', 'glamor', 'dolor', 'arbor'}
+
+
+
 def write(name, const, rows, lang):
     path = os.path.join(ROOT, 'src', 'data', name)
     with open(path, 'w', encoding='utf-8') as f:
@@ -286,6 +322,8 @@ def write(name, const, rows, lang):
         f.write(f'// {len(rows)} {lang} words. Row: [english keys, form, part of speech, status, source, extras]\n')
         f.write(f'export const {const} = [\n')
         for r in rows:
+            # English only (the meanings and the note), never the Elvish form
+            r = ['|'.join(dict.fromkeys(to_uk(r[0]).split('|')))] + r[1:5] + ([{**r[5], 'note': to_uk(r[5]['note'])} if 'note' in r[5] else r[5]] if len(r) > 5 else [])
             f.write('  ' + json.dumps(r, ensure_ascii=False) + ',\n')
         f.write(']\n')
     counts = {}
@@ -327,6 +365,7 @@ def phrases():
         f.write(f'// {len(out)} phrases and sentences Tolkien wrote in Quenya or Sindarin, with his own English.\n')
         f.write('export const TOLKIEN_PHRASES = [\n')
         for p in out:
+            p = {**p, 'english': to_uk(p['english'])}
             f.write('  ' + json.dumps(p, ensure_ascii=False) + ',\n')
         f.write(']\n')
     print('eldamo-phrases.js', len(out))
