@@ -200,7 +200,8 @@ export function sindarinVerb(entry, { tense, person, plural }) {
       if (ex.fut1) return { form: ex.fut1, steps: ['“I will …”, as Tolkien wrote it'], attested: true }
       return { form: base.replace(/a$/, 'on'), steps: [...steps, 'ending -on (“I”)'], attested: false }
     }
-    if (person === 'we') return neo(base.replace(/a$/, 'am'), 'ending -m (“we”), reconstructed')
+    // Tolkien's last “we” (1969, PE22/167): athof “we will”, so carathof “we will do”
+    if (person === 'we') return neo(base.replace(/a$/, 'of'), 'ending -of (“we”), from Tolkien’s 1969 athof “we will”')
     if (plural || person === 'they') return { form: base + 'r', steps: [...steps, 'plural ending -r'], attested: false }
     return { form: base, steps, attested: false }
   }
@@ -238,7 +239,9 @@ export function sindarinVerb(entry, { tense, person, plural }) {
     if (ex.p1) return { form: ex.p1, steps: ['“I …”, as Tolkien wrote it'], attested: true }
     return { form: aStem ? stem.slice(0, -1) + 'on' : affected + 'in', steps: [aStem ? 'present, ending -on (“I”)' : 'present, ending -in (“I”)' + affNote], attested: false }
   }
-  if (person === 'we') return neo(aStem ? stem + 'm' : affected + 'im', 'present, ending -m (“we”), reconstructed' + affNote)
+  if (person === 'we' && ex.p1pl) return { form: ex.p1pl, steps: ['“we …”, as Tolkien wrote it'], attested: true }
+  // the 1969 ending -f (PE22/167), in Eldamo's paradigm cerif “we do”, galof “we grow” (it replaced the older -m)
+  if (person === 'we') return neo(aStem ? stem.slice(0, -1) + 'of' : affected + 'if', 'present, ending -f (“we”), Tolkien’s last form (1969), applied here' + affNote)
   if (plural || person === 'they') return { form: aStem ? stem + 'r' : affected + 'ir', steps: ['present, plural ending' + affNote], attested: false }
   if (aStem) return { form: stem, steps: ['present'], attested: true }
   const isMono = (stem.match(/[aeiouy]+/g) || []).length === 1

@@ -409,7 +409,7 @@ function PrintSheet({ result, lang, english, tengwar, onClose }) {
   return (
     <div className="print-sheet" role="dialog" aria-label="Print view">
       <div className="print-sheet__bar">
-        <span className="hint">Print it, save it as a PDF, or take it to an artist. Check the spelling letter by letter before any tattoo.</span>
+        <span className="hint">Print it, save it as a PDF, or take it to an artist. Check the spelling letter by letter before any tattoo. For anything permanent, Elvish scholars advise writing your English in Tengwar instead: Tolkien’s own way of writing English is well understood, while every new publication of his notes can change what we know of his Elvish.</span>
         <div>
           <button className="btn btn--primary" onClick={() => window.print()}><Icon d={I.print} />Print</button>
           <button className="btn btn--ghost" onClick={onClose}>Close</button>

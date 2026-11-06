@@ -190,7 +190,7 @@ function lemmaCandidates(w) {
 // Verbs the grammar rules reach for directly, each one Tolkien's own
 const INTERNAL = {
   S: {
-    '@lack': { el: 'pen', pos: 'v', st: 'A', src: 'PE', ex: { cls: 'i', note: 'Tolkien’s “lack”, as in penim vast “we have no bread”' } },
+    '@lack': { el: 'pen', pos: 'v', st: 'A', src: 'PE', ex: { cls: 'i', p1pl: 'penim', note: 'Tolkien’s “lack”, as in penim vast “we have no bread”' } },
     '@do': { el: 'car', pos: 'v', st: 'A', src: 'LotR', ex: { cls: 'i', past: 'echant', note: 'Tolkien’s “do, make”, as in avo garo “don’t do it”' } },
     // PE17/173 (1959): sevin “I have”, aw “(he) had”; the stem sav- is worked out from those
     '@have': { el: 'sav', pos: 'v', st: 'D', src: 'PE', ex: { cls: 'i', p1: 'sevin', past3: 'aw', note: 'Tolkien’s “have” (1959), as in sevin “I have”' } },
