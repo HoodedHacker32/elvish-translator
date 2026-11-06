@@ -671,6 +671,31 @@ export function compose(text, lang = 'S') {
   flushNP()
   if (!items.length && toks.length) notes.push('Nothing to translate yet.')
 
+  // Sindarin “all”: Tolkien's only example is plural pain after the whole noun phrase, in the King's Letter:
+  // mhellyn în phain “all his friends” (SD/129). So “all my friends” is mellyn nín pain, “them all” hain … pain.
+  if (lang === 'S') {
+    const i = items.findIndex((it) => it.el.toLowerCase() === 'pân' && /\ball\b/.test(it.gloss))
+    if (i >= 0) {
+      let j = i + 1
+      while (j < items.length && (/^(noun|possessive|adjective)/.test(items[j].pos) || (j === i + 1 && items[j].pos === 'article'))) j++
+      const isPl = (it) => /plural/.test(it.pos + ' ' + it.steps.join(' '))
+      const plural = (j > i + 1 && items.slice(i + 1, j).some(isPl)) || items.some((it) => it.el === 'hain') ||
+        (i > 0 && /^noun/.test(items[i - 1].pos) && isPl(items[i - 1]))
+      if (j > i + 1) {
+        const order = items.map((_, k) => k)
+        const [it] = items.splice(i, 1); items.splice(j - 1, 0, it)
+        order.splice(j - 1, 0, ...order.splice(i, 1))
+        const at = new Map(order.map((old, now) => [old, now]))
+        for (const e of english) if (e.item != null) e.item = at.get(e.item)
+        it.steps.push('after the noun, as in Tolkien’s mhellyn în phain “all his friends”')
+      }
+      if (plural) {
+        items[items.indexOf(items.find((x) => x.el.toLowerCase() === 'pân'))].el = 'pain'
+        items.find((x) => x.el === 'pain').steps.push('plural pain, as Tolkien wrote it (King’s Letter)')
+      }
+    }
+  }
+
   if (items[0]) items[0].el = capitaliseLine(items[0].el)
   const line = items.map((it) => it.el + (it.punct || '')).join(' ')
   const others = canon.filter((c) => c.lang !== lang)

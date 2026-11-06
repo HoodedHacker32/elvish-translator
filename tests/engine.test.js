@@ -436,3 +436,10 @@ test('Quenya possessives on plurals, prepositions and relative “where”', () 
   // “doomed”: Tolkien's nearest is “fated” (marta), offered with the capitals kept
   assert.ok(translate('Mortal Men doomed to die', 'Q').trust.suggestions.some((s) => s.english === 'Mortal Men fated to die'))
 })
+
+test('Sindarin “all” follows Tolkien’s mhellyn în phain: plural pain after the noun phrase', () => {
+  assert.equal(line('I greet all my friends', 'S'), 'Suilon mellyn nín pain')
+  assert.equal(line('All elves sing', 'S'), 'Edhil pain linnar')
+  assert.equal(line('One Ring to rule them all', 'S'), 'Min cor hain torthad pain')
+  assert.equal(line('the whole land', 'S'), 'I dhôr pân')
+})
