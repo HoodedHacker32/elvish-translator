@@ -235,6 +235,8 @@ export const SINDARIN = [
   ['your|thy', 'lín', 'poss', 'A', 'VT'],
   ['us|for us|to us', 'ammen', 'pron', 'A', 'LotR'],
   ['our', 'vín', 'poss', 'A', 'VT'],
+  // the King's Letter (Sauron Defeated): dîn “his”, after the noun as nín and vín are
+  ['his', 'dîn', 'poss', 'A', 'SD'],
   ['them', 'hain', 'pron', 'A', 'LotR'],
   ['he|she|it', 'e', 'pron', 'N', 'Neo'],
   ['we', 'men', 'pron', 'N', 'Neo'],
@@ -256,7 +258,9 @@ export const SINDARIN = [
   ['well', 'mae', 'adv', 'A', 'LotR'],
   ['forever', 'an uir', 'adv', 'A', 'LotR'],
   ['long|for a long time', 'anann', 'adv', 'A', 'LotR'],
-  ['to|towards|at|on|upon', 'na', 'prep', 'A', 'LotR'],
+  ['to|towards|at', 'na', 'prep', 'A', 'LotR'],
+  // the Lord's Prayer (Ae Adar Nín): bo Ceven “on Earth”. Sindarin na is “to, at”, never “on”
+  ['on|upon', 'bo', 'prep', 'A', 'VT'],
   ['for', 'an', 'prep', 'A', 'LotR'],
   ['from|out of', 'o', 'prep', 'A', 'LotR'],
   ['in|within', 'mi', 'prep', 'A', 'VT'],

@@ -68,7 +68,7 @@ test('Quenya adjectives after “are” agree in number', () => {
 })
 
 test('modal verbs and sentence-start words do not break the sentence', () => {
-  assert.equal(line('I cannot find my friends', 'Q'), 'Lá polin hirë meldorinyar') // Tolkien's pol- "can": polin quetë
+  assert.equal(line('I cannot find my friends', 'Q'), 'Lá polin hirë meldonyar') // Tolkien's pol- "can": polin quetë
   assert.equal(translate('Where is the king?', 'S').items[0].status, 'G')
 })
 
@@ -402,4 +402,37 @@ test('UK and US spellings find the same words', () => {
   assert.equal(line('Well met, wanderer', 'S'), 'Mae govannen, randir')
   // no false pairs: “filled” is not “filed”, “four” is not “for”
   assert.notEqual(line('the floor', 'S'), line('the flour', 'S'))
+})
+
+test('gaps Tolkien filled elsewhere are filled, with the source said', () => {
+  // Noldorin tog- “bring” and gwedh- “bind” (Etymologies), as Eldamo's Neo-Sindarin uses them: a caution, not a refusal
+  for (const s of ['Bring them', 'Bind them']) {
+    const r = translate(s, 'S')
+    assert.equal(r.trust.level, 'caution', s)
+    assert.match(r.trust.reasons.join(' '), /earlier drafts/)
+  }
+  // dîn “his”, after the noun, as in the King's Letter (bess dîn “his wife”); “on” is bo (Ae Adar Nín), not na “to”
+  const his = translate('He sat on his throne', 'S')
+  assert.match(his.line, /\bdîn\b/)
+  assert.match(his.line, /\bbo\b/)
+  assert.doesNotMatch(his.line, /\bna\b/)
+  // “where” and “their” have no usable word of Tolkien's, so the nearest wording is offered
+  const where = translate('The hills where the stars shine', 'S')
+  assert.ok(where.trust.suggestions.some((s) => /^The hills, there /.test(s.english)))
+  const their = translate('The elves in their halls', 'S')
+  assert.ok(their.trust.suggestions.some((s) => s.english === 'The elves in the halls'))
+  // verse comes back line by line, and a comma-split clause keeps its comma
+  assert.equal(translate('The stars shine\nThe moon is bright', 'S').segments.length, 2)
+})
+
+test('Quenya possessives on plurals, prepositions and relative “where”', () => {
+  // the plural follows the possessive on the bare noun (má-rya-t, Namárië): solma-nya-ssen, not solmar-inya-r-essë
+  assert.equal(line('in my halls', 'Q'), 'Solmanyassen')
+  assert.equal(line('my halls', 'Q'), 'Solmanyar')
+  // a fan-made verb glossed “under-” never takes over Tolkien's nu
+  assert.equal(line('under the sky', 'Q'), 'Nu i menel')
+  // yassë “where, in which place” (PE17/66)
+  assert.match(line('the land where the shadows lie', 'Q'), / yassë /)
+  // “doomed”: Tolkien's nearest is “fated” (marta), offered with the capitals kept
+  assert.ok(translate('Mortal Men doomed to die', 'Q').trust.suggestions.some((s) => s.english === 'Mortal Men fated to die'))
 })

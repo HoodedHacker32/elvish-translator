@@ -81,6 +81,10 @@ mine yours is are am was were be been being have has had that this these those w
 how there here so very as like than then if because all some any each every own self myself yourself thee thou thy'''.split())
 
 
+# Verbs only: a lone preposition is never a verb's meaning ("under" from "undermine, under-fret" would
+# turn "kings under the sky" into a command)
+PREPOSITIONS = set('''under over beneath above below through across against without near beside behind before
+after between among around within towards toward beyond along down up out off away back'''.split())
 # Verbs only: grammar words that are still safe as a whole meaning ("own" = possess)
 VERB_OK = {'own'}
 # Verbs only: "trust in" also answers plain "trust" (the head keeps its meaning with these)
@@ -102,6 +106,8 @@ def keys_from(gloss, verb=False):
         if not p or len(p.split()) > 3 or not re.match(r"^[a-z][a-z' -]*$", p):
             continue
         words = p.split()
+        if verb and p in PREPOSITIONS:
+            continue
         if any(t in FUNCTION for t in words):
             # a verb's multi-word meaning with a real word in it ("have mercy", "be in love") only ever matches
             # as a whole phrase, so it cannot override the grammar; a lone grammar word ("have", "can") would
@@ -232,6 +238,47 @@ def convert(lang_late, lang_neo):
     return out
 
 
+def adopt_earlier(rows, l_earlier, note):
+    """Fill gaps in the finished language with Tolkien's own 1930s words (Noldorin, Middle Quenya), as Eldamo's
+    Neo-Elvish notes do: only for meanings the finished language has no word for, and never a word Eldamo
+    deprecates in favour of another. They are marked 'E' (earlier Tolkien), so every use carries a caution."""
+    root = ET.parse(SRC).getroot()
+    have = {k for r in rows for k in r[0].split('|')}
+    added = {}
+    for w in root.iter('word'):
+        if w.get('l') != l_earlier or w.findall('deprecated') or not w.findall('ref'):
+            continue
+        pos = POS.get((w.get('speech') or '').split(' ')[0])  # "adj n": its first use
+        mark = w.get('mark') or ''
+        if not pos or any(c in mark for c in '-|⚠?'):
+            continue
+        v = w.get('v') or ''
+        if v.startswith('-') or (pos != 'v' and v.endswith('-')) or ' ' in v.strip():
+            continue
+        el = clean_form(v, pos == 'v')
+        if not el:
+            continue
+        keys = [k for k in keys_from(w.get('gloss'), pos == 'v') if k not in have and len(k.split()) <= 2]
+        if not keys:
+            continue
+        ex = {'note': note}
+        if pos == 'v':
+            ex['cls'] = 'a' if re.search(r'[aeiouë]$', el) else 'i'
+        if pos == 'n':
+            pl = plural_of(w)
+            if pl and pl != el:
+                ex['pl'] = pl
+        src = work_label(best_source(w.findall('ref')) or '') or 'Eldamo'
+        k = (el, pos)
+        if k in added:
+            added[k][0] += '|' + '|'.join(x for x in keys if x not in added[k][0].split('|'))
+        else:
+            added[k] = ['|'.join(keys), el, pos, 'E', src, ex]
+    for r in added.values():
+        have.update(r[0].split('|'))
+    return rows + sorted(added.values(), key=lambda x: x[1].lower())
+
+
 def write(name, const, rows, lang):
     path = os.path.join(ROOT, 'src', 'data', name)
     with open(path, 'w', encoding='utf-8') as f:
@@ -316,19 +363,45 @@ def earlier(main):
                 for k in keys_from(w.get('gloss'), pos == 'v'):
                     if len(k.split()) <= 2 and k not in have[code] and k not in out[code]:
                         out[code][k] = [v + ('-' if pos == 'v' else ''), label, src]
+    # Grammar words ("his", "where", "their") are left out of the lexicons on purpose, since the grammar
+    # rules handle them, so a "no word" message about one must still say what Eldamo has: Tolkien's
+    # finished language first (suffixes included), then his earlier stages, then fan-made words.
+    grammar = {'S': {}, 'Q': {}}
+    tiers = {
+        'S': [('s', 'Tolkien’s Sindarin')] + STAGES['S'][1:] + [('ns', 'Neo-Sindarin, fan-made')],
+        'Q': [('q', 'Tolkien’s Quenya')] + STAGES['Q'][1:] + [('nq', 'Neo-Quenya, fan-made')],
+    }
+    for code, stages in tiers.items():
+        for l, label in stages:
+            for w in root.iter('word'):
+                if w.get('l') != l or '-' in (w.get('mark') or '') or '⚠' in (w.get('mark') or ''):
+                    continue
+                v = (w.get('v') or '').rstrip('¹²³⁴⁵')
+                if not v or ' ' in v.strip('-'):
+                    continue
+                g = re.sub(r'\([^)]*\)|\[[^\]]*\]|[*†?!"“”]', ' ', w.get('gloss') or '')
+                for part in re.split(r'[,;/=]| or ', g):
+                    k = part.strip().strip('.').lower()
+                    if k in FUNCTION and k not in grammar[code]:
+                        src = work_label(best_source(w.findall('ref')) or '')
+                        grammar[code][k] = [v, label, src, 'suffix' if v.startswith('-') else w.get('speech') or '']
     path = os.path.join(ROOT, 'src', 'data', 'eldamo-earlier.js')
     with open(path, 'w', encoding='utf-8') as f:
         f.write('// Generated by scripts/build-eldamo.py from Eldamo (eldamo.org, Paul Strack, CC BY 4.0). Do not edit by hand.\n')
         f.write('// Meanings with no word in the main lexicons, and what Tolkien wrote for them in earlier stages\n')
         f.write('// (or only as a worked-out form): english → [form, stage, source]\n')
         f.write('export const EARLIER = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + '\n')
-    print('eldamo-earlier.js', {k: len(v) for k, v in out.items()})
+        f.write('// Grammar words, which the lexicons leave to the grammar rules: english → [form, stage, source, kind]\n')
+        f.write('export const GRAMMAR_WORDS = ' + json.dumps(grammar, ensure_ascii=False, separators=(',', ':')) + '\n')
+    print('eldamo-earlier.js', {k: len(v) for k, v in out.items()}, 'grammar', {k: len(v) for k, v in grammar.items()})
 
 
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
     s_rows = convert('s', 'ns')
     q_rows = convert('q', 'nq')
+    s_rows = adopt_earlier(s_rows, 'n', 'Noldorin, Tolkien’s 1930s Sindarin; used where his finished Sindarin has no word')
+    q_rows = adopt_earlier(q_rows, 'mq', 'Middle Quenya, Tolkien’s 1930s–40s Quenya; used where his finished Quenya has no word')
     write('eldamo-sindarin.js', 'ELDAMO_SINDARIN', s_rows, 'Sindarin')
     write('eldamo-quenya.js', 'ELDAMO_QUENYA', q_rows, 'Quenya')
     phrases()

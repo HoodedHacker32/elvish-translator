@@ -4,13 +4,24 @@
 //   caution  works, but leans on a word or ending Tolkien did not write (each one listed)
 //   unsafe   needs something Tolkien never showed; the line is withheld unless the visitor asks for it
 
-import { EARLIER } from '../data/eldamo-earlier.js'
+import { EARLIER, GRAMMAR_WORDS } from '../data/eldamo-earlier.js'
 
 // A meaning with no word in the main lexicon may still have one in an earlier stage of Tolkien's language
 // (checked in Eldamo), so “no word” is never said without saying what does exist.
 function noWord(gloss, lang) {
-  const e = EARLIER[lang]?.[gloss.toLowerCase()]
+  const g0 = gloss.toLowerCase()
+  const e = EARLIER[lang]?.[g0]
   const name = lang === 'S' ? 'Sindarin' : 'Quenya'
+  // grammar words (“his”, “where”, “their”) are not in the lexicon, but Eldamo may still have them
+  const gw = !e && GRAMMAR_WORDS[lang]?.[g0]
+  if (gw) {
+    const [form, stage, src, kind] = gw
+    const at = src ? `${stage}, ${src}` : stage
+    if (/fan-made/.test(stage)) return `“${gloss}”: Tolkien left no word for this in any stage of his ${name}. Writers of Neo-${name} use ${form}, but that is not his, so it is not used here.`
+    if (/^Tolkien/.test(stage) && kind === 'suffix') return `“${gloss}”: Tolkien wrote this as an ending, ${form} (${at}), but left no example of it on a word, so it is not added here.`
+    if (/^Tolkien/.test(stage)) return `“${gloss}”: Tolkien wrote ${form} for this (${at}), but too few examples to place it in a sentence like this one reliably.`
+    return `“${gloss}”: no word in Tolkien’s finished ${name}. In ${stage} he wrote ${form} (${src}), but it was never carried into the finished language, so it is not used here.`
+  }
   if (!e) return `“${gloss}”: Eldamo lists no word for this in any stage of Tolkien’s ${name}.`
   return `“${gloss}”: no word in Tolkien’s finished ${name}. In ${e[1]} he wrote ${e[0]} (${e[2]}), but it was never carried into the finished language, so it is not used here.`
 }
@@ -32,11 +43,12 @@ const CLOSEST_THING = {
 
 // Words Tolkien never glossed whose meaning one of his words covers closely (checked in Eldamo)
 const WANDERER = { english: 'wanderer', why: 'Tolkien left no word for “traveller”; his nearest is Sindarin randir “wanderer, pilgrim”, as in Mithrandir (Parma Eldalamberon 17)' }
-const NEAREST = { traveller: WANDERER, travellers: { ...WANDERER, english: 'wanderers' }, traveler: WANDERER, travelers: { ...WANDERER, english: 'wanderers' }, wayfarer: WANDERER }
+const NEAREST = { traveller: WANDERER, travellers: { ...WANDERER, english: 'wanderers' }, traveler: WANDERER, travelers: { ...WANDERER, english: 'wanderers' }, wayfarer: WANDERER,
+  doomed: { english: 'fated', why: 'Tolkien’s nearest to “doomed” is “fated”: Quenya marta (The Etymologies), Sindarin barad' } }
 
 const plain = (s) => s.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').trim()
 
-export function suggestRephrase(english) {
+export function suggestRephrase(english, lang = 'S') {
   const t = plain(english).replace(/[.!?]+$/, '')
   const out = []
   const req = t.match(/^(?:please\s+)?(?:can|could|may)\s+(?:i|we)\s+(?:please\s+)?(?:have|get)\s+(?:a |an |the |some )?(.+?)(?:\s+please)?$/) ||
@@ -56,9 +68,20 @@ export function suggestRephrase(english) {
   for (const [word, near] of Object.entries(NEAREST)) {
     const re = new RegExp(`\\b${word}\\b`)
     if (re.test(t)) {
-      const english = t.replace(re, near.english)
-      out.push({ english: english[0].toUpperCase() + english.slice(1), why: near.why })
+      // built from what was typed, so names and capitals stay as they were
+      const english2 = english.trim().replace(new RegExp(`\\b${word}\\b`, 'i'), near.english)
+      out.push({ english: english2[0].toUpperCase() + english2.slice(1), why: near.why })
     }
+  }
+  // “their”: Tolkien left only the bare ending -ent (PE17/46), never on a word; “the” keeps the sense
+  if (/\btheir\b/i.test(english)) {
+    out.push({ english: english.trim().replace(/\btheir\b/g, 'the').replace(/\bTheir\b/g, 'The'), why: 'Tolkien left “their” only as a bare ending (-ent, Parma Eldalamberon 17) with no example on a word; “the” keeps the sense' })
+  }
+  // “… where X lie”: Sindarin has no relative “where” of Tolkien's, but his ennas “there” (King's Letter) says it
+  // (built from what was typed, not the lower-cased copy, so names like Mordor stay names)
+  const rel = english.trim().replace(/[.!]+$/, '').match(/^(?!where\b)(.+?),?\s+where\s+(.+)$/i)
+  if (lang === 'S' && rel && !/\?$/.test(english.trim())) {
+    out.push({ english: `${rel[1]}, there ${rel[2]}`, why: 'Tolkien left no Sindarin word for “where” in this sense; his ennas “there” (Sauron Defeated, the King’s Letter) says the same thing' })
   }
   const where = t.match(/^where\s+(?:is|are)\s+(.+)$/)
   if (where) out.push({ english: `I seek ${where[1]}`, why: 'Tolkien left almost no questions; a statement is safe' })
@@ -127,7 +150,7 @@ export function assess(english, result) {
     if (/past “to be” not attested/.test(it.steps.join(' '))) cautions.push('Tolkien gave no reliable past tense of “to be”; the present “ná/nar” is used.')
   }
 
-  const suggestions = blockers.length || cautions.length ? suggestRephrase(english) : []
+  const suggestions = blockers.length || cautions.length ? suggestRephrase(english, lang) : []
   if (blockers.length) return { level: 'unsafe', reasons: blockers, cautions, suggestions }
   if (cautions.length) return { level: 'caution', reasons: cautions, suggestions }
   return { level: 'safe', reasons: [], suggestions: [] }

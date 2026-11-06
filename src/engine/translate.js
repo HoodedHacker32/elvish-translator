@@ -169,10 +169,11 @@ function lemmaCandidates(w) {
   if (w.endsWith('ies')) c.push([w.slice(0, -3) + 'y', { plural: true, s3: true }])
   if (w.endsWith('es')) c.push([w.slice(0, -2), { plural: true, s3: true }])
   if (w.endsWith('s') && !w.endsWith('ss')) c.push([w.slice(0, -1), { plural: true, s3: true }])
-  if (w.endsWith('ied')) c.push([w.slice(0, -3) + 'y', { tense: 'past' }])
+  // “-ed” is only ever a verb's: “doomed” is not the noun “doom”
+  if (w.endsWith('ied')) c.push([w.slice(0, -3) + 'y', { tense: 'past', ed: true }])
   if (w.endsWith('ed')) {
-    c.push([w.slice(0, -2), { tense: 'past' }], [w.slice(0, -1), { tense: 'past' }])
-    if (/(.)\1ed$/.test(w)) c.push([w.slice(0, -3), { tense: 'past' }])
+    c.push([w.slice(0, -2), { tense: 'past', ed: true }], [w.slice(0, -1), { tense: 'past', ed: true }])
+    if (/(.)\1ed$/.test(w)) c.push([w.slice(0, -3), { tense: 'past', ed: true }])
   }
   if (w.endsWith('ing')) {
     c.push([w.slice(0, -3), { ing: true }], [w.slice(0, -3) + 'e', { ing: true }])
@@ -224,6 +225,7 @@ function lookup(idx, w, preferVerb = false) {
   for (const [lemma, feats] of lemmaCandidates(w)) {
     const hits = idx.words.get(lemma)
     if (hits && feats.comparative && !hits.some((h) => h.pos === 'adj')) continue
+    if (hits && feats.ed && !hits.some((h) => h.pos === 'v')) continue
     if (hits) return { lemma, feats, hits }
   }
   return null
@@ -425,9 +427,13 @@ export function compose(text, lang = 'S') {
       continue
     }
     const afterVerb = lastVerb && lastVerb.index === items.length - 1
-    if (w === 'to' && nextW && isVerbLike(idx, nextW) && (afterVerb || !isNounLike(idx, nextW))) {
+    // “to rule them”, “to find it”: a verb that takes an object is a verb even if it can be a noun
+    const next2U = nextU >= 0 ? nextWordUnit(nextU) : -1
+    const takesObject = next2U >= 0 && units[next2U].kind === 'word' && /^(them|him|her|it|me|us|you|thee)$/.test(units[next2U].w)
+    if (w === 'to' && nextW && isVerbLike(idx, nextW) && (afterVerb || takesObject || !isNounLike(idx, nextW))) {
       english[enI].dropped = '“to” is shown by the verb’s ending'
-      if (afterVerb) pendingInf = true
+      // “to” + verb is always the “to …” form, after a verb (“wants to sing”) or not (“doomed to die”)
+      pendingInf = true
       continue
     }
     if (w === 'there' && ['is', 'are', 'was', 'were'].includes(nextW)) { english[enI].dropped = '“there is” is not translated'; continue }
@@ -542,7 +548,9 @@ export function compose(text, lang = 'S') {
     let entry = null
     if (afterCopula && !r.feats.ing) entry = r.hits.find((h) => h.pos === 'adj') || r.hits.find((h) => h.pos === 'n')
     if (entry || !['not', 'never'].includes(w)) afterCopula = false
-    if (wantNoun) entry = r.hits.find((h) => h.pos === 'n') || r.hits.find((h) => h.pos === 'adj')
+    // after “the / my / on”, a word with a noun straight after it describes that noun: “the dark lord”
+    const describesNext = nextW && isNounLike(idx, nextW) && r.hits.find((h) => h.pos === 'adj')
+    if (wantNoun) entry = describesNext || r.hits.find((h) => h.pos === 'n') || r.hits.find((h) => h.pos === 'adj')
     if (!entry && wantVerb) entry = r.hits.find((h) => h.pos === 'v')
     if (!entry && nextW && isNounLike(idx, nextW) && !wantVerb) entry = r.hits.find((h) => h.pos === 'adj')
     if (!entry) entry = r.hits.find((h) => h.pos !== 'v') || r.hits[0]
@@ -712,12 +720,15 @@ export function compose(text, lang = 'S') {
     })
     if (lang === 'Q') {
       if (cur.poss) {
+        // the plural goes after the possessive, on the bare noun: má-rya-t “her (two) hands” (Namárië),
+        // so “my halls” is solma-nya-r, and “in my halls” solma-nya-ssen
+        if (plural) { form = entry.el; steps.splice(1) }
         const q = quenyaPossessive(form, QUENYA_POSS[cur.poss.person].sfx)
         form = q.form; steps.push(q.step); attestedForm = false; enIdxs.unshift(cur.poss.enI)
-        if (plural) { form = form + 'r'; steps.push('plural -r after the ending') }
+        if (plural && !cur.kase) { form = form + 'r'; steps.push('plural -r after the ending') }
       }
       if (cur.kase) {
-        const k = quenyaCase(form, cur.kase, plural && !cur.poss)
+        const k = quenyaCase(plural && cur.poss ? form + 'r' : form, cur.kase, plural)
         form = k.form; steps.push(k.step); attestedForm = false; enIdxs.unshift(cur.caseEn)
       }
       if (cur.article != null && cur.kase !== 'gen') {
@@ -745,7 +756,9 @@ export function compose(text, lang = 'S') {
     })
     if (lang === 'S') out.push(...adjOut)
     if (lang === 'S' && cur.poss) {
-      const p = idx.words.get({ i: 'my', you: 'your', we: 'our' }[cur.poss.person] || '')?.[0]
+      // by the English word itself: Tolkien's dîn is “his”, and says nothing of “her” or “its”
+      const said = toks[cur.poss.enI].text
+      const p = idx.words.get({ i: 'my', you: 'your', we: 'our' }[cur.poss.person] || (said === 'his' ? 'his' : ''))?.find((h) => h.pos === 'poss')
       if (p) out.push({ item: makeItem(p.el, null, toks[cur.poss.enI].text, 'possessive', p.st, p.src, ['follows the noun']), en: [cur.poss.enI] })
       else out.push({ item: makeItem(`[${toks[cur.poss.enI].text}]`, null, toks[cur.poss.enI].text, '—', 'G', '', ['no attested Sindarin form']), en: [cur.poss.enI] })
     }
@@ -845,33 +858,39 @@ function everydayResult(d, lang) {
 
 // Split a message into sentences (and long comma-joined clauses) so one weak part does not sink the rest.
 function splitSentences(text) {
-  const parts = text.split(/(?<=[.!?;])\s+/).flatMap((s) => {
+  // a line break ends a sentence too, so verse comes back line by line
+  const parts = text.split(/(?<=[.!?;])\s+|\s*\n\s*/).flatMap((s) => {
     const bits = s.split(/,\s+/)
-    if (bits.length < 2) return [s]
-    const out = [bits[0]]
+    if (bits.length < 2) return [{ text: s }]
+    const out = [{ text: bits[0] }]
     for (const b of bits.slice(1)) {
       const prev = out[out.length - 1]
-      if (prev.split(/\s+/).length >= 3 && b.split(/\s+/).length >= 3) out.push(b)
-      else out[out.length - 1] = prev + ', ' + b
+      if (prev.text.split(/\s+/).length >= 3 && b.split(/\s+/).length >= 3) out.push({ text: b, clause: true })
+      else prev.text = prev.text + ', ' + b
     }
     return out
   })
-  return parts.map((p) => p.trim()).filter((p) => /[a-z]/i.test(p))
+  return parts.map((p) => ({ ...p, text: p.text.trim() })).filter((p) => /[a-z]/i.test(p.text))
 }
 
 const LEVELS = ['exact', 'idiom', 'safe', 'caution', 'unsafe']
 
 export function translate(text, lang = 'S', { suggestions = true, whole = false } = {}) {
   // a whole line Tolkien wrote wins before any splitting
-  const parts = whole ? [text] : splitSentences(text)
+  const parts = whole ? [{ text }] : splitSentences(text)
   if (parts.length > 1 && !exactPhrase(text, lang) && !findCanon(text).length && !expletive(text, lang) && !everyday(text, lang)) {
-    const segments = parts.map((p) => ({ english: p, result: translate(p, lang, { suggestions, whole: true }) }))
+    const segments = parts.map((p) => ({ english: p.text, clause: p.clause, result: translate(p.text, lang, { suggestions, whole: true }) }))
     const worst = segments.reduce((w, s) => Math.max(w, LEVELS.indexOf(s.result.trust.level)), 0)
     const shown = segments.filter((s) => s.result.trust.level !== 'unsafe')
     const items = shown.flatMap((s) => s.result.items)
     return {
       lang, mode: 'multi', segments, items, english: [], notes: [], canonElsewhere: [], closest: [],
-      line: shown.map((s) => s.result.line).join(' '),
+      // a clause split off at a comma rejoins with its comma, and starts small if the English did
+      line: shown.map((s, i) => {
+        if (!i || !s.clause) return s.result.line
+        const l = /^[a-z]/.test(s.english) ? s.result.line.charAt(0).toLowerCase() + s.result.line.slice(1) : s.result.line
+        return ', ' + l
+      }).join(' ').replace(/ ,/g, ','),
       summary: summarise(items),
       trust: { level: LEVELS[worst], reasons: [], suggestions: [] },
     }

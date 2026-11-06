@@ -244,6 +244,8 @@ export const QUENYA = [
   ['who', 'man', 'pron', 'A', 'LotR'],
   ['like|as', 've', 'prep', 'A', 'LotR'],
   ['under|beneath', 'nu', 'prep', 'A', 'Ety'],
+  // yassë “where, in which place” (PE17/66), relative only: “the land where the shadows lie”
+  ['where', 'yassë', 'adv', 'A', 'PE'],
   ['over|above', 'or', 'prep', 'A', 'Ety'],
   ['through', 'ter', 'prep', 'A', 'Ety'],
   ['with', 'as', 'prep', 'D', 'VT'],
