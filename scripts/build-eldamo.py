@@ -179,7 +179,7 @@ def convert(lang_late, lang_neo):
         l = w.get('l')
         if l not in (lang_late, lang_neo):
             continue
-        pos = POS.get(w.get('speech'))
+        pos = POS.get((w.get('speech') or '').split(' ')[0])  # "adj n": its first use
         if not pos:
             continue
         mark = w.get('mark') or ''
@@ -238,12 +238,16 @@ def convert(lang_late, lang_neo):
     return out
 
 
-def adopt_earlier(rows, l_earlier, note):
+def adopt_earlier(rows, l_earlier, l_late, note):
     """Fill gaps in the finished language with Tolkien's own 1930s words (Noldorin, Middle Quenya), as Eldamo's
     Neo-Elvish notes do: only for meanings the finished language has no word for, and never a word Eldamo
     deprecates in favour of another. They are marked 'E' (earlier Tolkien), so every use carries a caution."""
     root = ET.parse(SRC).getroot()
     have = {k for r in rows for k in r[0].split('|')}
+    # a form the finished language already has is Tolkien's late word, not an earlier one to adopt
+    # (same form and same part of speech: Quenya marta “decree” is a different word from the 1930s marta “fated”)
+    late = {((w.get('v') or '').rstrip('¹²³⁴⁵').rstrip('-'), p) for w in root.iter('word') if w.get('l') == l_late
+            for p in [POS.get(x) for x in (w.get('speech') or '').split(' ')] if p}
     added = {}
     for w in root.iter('word'):
         if w.get('l') != l_earlier or w.findall('deprecated') or not w.findall('ref'):
@@ -256,7 +260,7 @@ def adopt_earlier(rows, l_earlier, note):
         if v.startswith('-') or (pos != 'v' and v.endswith('-')) or ' ' in v.strip():
             continue
         el = clean_form(v, pos == 'v')
-        if not el:
+        if not el or (v.rstrip('¹²³⁴⁵').rstrip('-'), pos) in late:
             continue
         keys = [k for k in keys_from(w.get('gloss'), pos == 'v') if k not in have and len(k.split()) <= 2]
         if not keys:
@@ -439,8 +443,8 @@ if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
     s_rows = convert('s', 'ns')
     q_rows = convert('q', 'nq')
-    s_rows = adopt_earlier(s_rows, 'n', 'Noldorin, Tolkien’s 1930s Sindarin; used where his finished Sindarin has no word')
-    q_rows = adopt_earlier(q_rows, 'mq', 'Middle Quenya, Tolkien’s 1930s–40s Quenya; used where his finished Quenya has no word')
+    s_rows = adopt_earlier(s_rows, 'n', 's', 'Noldorin, Tolkien’s 1930s Sindarin; used where his finished Sindarin has no word')
+    q_rows = adopt_earlier(q_rows, 'mq', 'q', 'Middle Quenya, Tolkien’s 1930s–40s Quenya; used where his finished Quenya has no word')
     write('eldamo-sindarin.js', 'ELDAMO_SINDARIN', s_rows, 'Sindarin')
     write('eldamo-quenya.js', 'ELDAMO_QUENYA', q_rows, 'Quenya')
     phrases()
