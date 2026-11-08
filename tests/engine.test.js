@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { translate } from '../src/engine/translate.js'
 import { respell } from '../src/engine/pronounce.js'
-import { toTengwar } from '../src/engine/tengwar.js'
+import { toTengwar, CSUR } from '../src/engine/tengwar.js'
 import { CANON } from '../src/data/canon.js'
 import { SINDARIN } from '../src/data/sindarin.js'
 import { QUENYA } from '../src/data/quenya.js'
@@ -442,4 +442,20 @@ test('Sindarin “all” follows Tolkien’s mhellyn în phain: plural pain afte
   assert.equal(line('All elves sing', 'S'), 'Edhil pain linnar')
   assert.equal(line('One Ring to rule them all', 'S'), 'Min cor hain torthad pain')
   assert.equal(line('the whole land', 'S'), 'I dhôr pân')
+})
+
+test('Tengwar letters are the ConScript registry’s, the layout Alcarin Tengwar draws', () => {
+  const cps = (s, lang) => [...toTengwar(s, lang)].map((c) => c.codePointAt(0))
+  // mellon: malta, lambe + doubling bar + e, númen + o
+  assert.deepEqual(cps('mellon', 'S'), [CSUR.malta, CSUR.lambe, CSUR.doubler, CSUR.acute, CSUR.numen, CSUR.rightCurl])
+  // a word-initial vowel sits on the short carrier; s carrying a vowel turns to silme nuquerna
+  assert.deepEqual(cps('elen sila', 'Q'), [CSUR.shortCarrier, CSUR.acute, CSUR.lambe, CSUR.acute, CSUR.numen, 32, CSUR.silmeNuquerna, CSUR.dot, CSUR.lambe, CSUR.threeDots])
+  // r before a vowel is rómen; h is hyarmen; a long vowel takes the long carrier
+  assert.ok(cps('namarie', 'Q').includes(CSUR.romen))
+  assert.equal(cps('hrive', 'Q')[0], CSUR.hyarmen)
+  assert.ok(cps('í', 'Q').includes(CSUR.longCarrier))
+  // the codes the old table used by mistake (extended letters) never appear in ordinary text
+  for (const w of ['lasto beth lammen', 'Ai na vedui Dúnadan', 'Namárië']) {
+    assert.ok(cps(w, 'S').every((c) => c < CSUR.extTinco || c > CSUR.extUngwe), w)
+  }
 })
