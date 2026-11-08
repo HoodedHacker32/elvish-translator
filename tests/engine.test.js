@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { translate } from '../src/engine/translate.js'
 import { respell } from '../src/engine/pronounce.js'
-import { toTengwar, CSUR } from '../src/engine/tengwar.js'
+import { toTengwar, toTengwarNumber, toAnnatar, CSUR } from '../src/engine/tengwar.js'
 import { CANON } from '../src/data/canon.js'
 import { SINDARIN } from '../src/data/sindarin.js'
 import { QUENYA } from '../src/data/quenya.js'
@@ -457,5 +457,45 @@ test('Tengwar letters are the ConScript registry’s, the layout Alcarin Tengwar
   // the codes the old table used by mistake (extended letters) never appear in ordinary text
   for (const w of ['lasto beth lammen', 'Ai na vedui Dúnadan', 'Namárië']) {
     assert.ok(cps(w, 'S').every((c) => c < CSUR.extTinco || c > CSUR.extUngwe), w)
+  }
+})
+
+test('English in Tengwar follows Tolkien’s spelling-based samples (Björkman, Amanyë Tenceli)', () => {
+  const names = Object.fromEntries(Object.entries(CSUR).map(([k, v]) => [v, k]))
+  const spell = (s) => [...toTengwar(s, 'E')].map((c) => names[c.codePointAt(0)] || (c === ' ' ? '|' : c.codePointAt(0).toString(16)))
+  // the vowel sign sits on the letter after it; r before a vowel is rómen, otherwise óre
+  assert.deepEqual(spell('march'), ['malta', 'ore', 'threeDots', 'calma'])
+  assert.deepEqual(spell('return'), ['romen', 'tinco', 'acute', 'ore', 'leftCurl', 'numen'])
+  // a silent final e is a dot below; voiced th is anto
+  assert.deepEqual(spell('there'), ['anto', 'ore', 'acute', 'dotBelow'])
+  // a doubled letter is a bar below, a nasal before its own series a bar above
+  assert.deepEqual(spell('happy'), ['hyarmen', 'parma', 'doubler', 'threeDots', 'shortCarrier', 'dot'])
+  assert.deepEqual(spell('want'), ['vala', 'tinco', 'nasalizer', 'threeDots'])
+  // the shorthands Tolkien used for the, of, of the, and
+  assert.deepEqual(spell('the lord of the rings').slice(0, 2), ['extAndo', '|'])
+  assert.ok(spell('the lord of the rings').join(' ').includes('extUmbar doubler'))
+  assert.deepEqual(spell('and'), ['ando', 'nasalizer'])
+  // second vowels written as letters: -e yanta (Michael), -a stemless anna (Earth), -u vala (you)
+  assert.ok(spell('michael').includes('yanta'))
+  assert.equal(spell('earth')[0], 'e032')
+  assert.deepEqual(spell('you'), ['anna', 'vala', 'rightCurl'])
+  // names come out too: no Latin letters are ever left behind
+  assert.ok([...toTengwar('Frodo Baggins', 'E')].every((c) => c === ' ' || c.codePointAt(0) >= 0xe000))
+})
+
+test('Tengwar numerals run least significant digit first', () => {
+  const cps = (s) => [...s].map((c) => c.codePointAt(0))
+  // 1954 in base 10: 4 5 9 1, each with a dot above
+  assert.deepEqual(cps(toTengwarNumber(1954)), [0xe074, CSUR.dot, 0xe075, CSUR.dot, 0xe079, CSUR.dot, 0xe071, CSUR.dot])
+  // 144 in base 12 is 100: dots below, and the ring under the units digit
+  assert.deepEqual(cps(toTengwarNumber(144, 12)), [0xe070, CSUR.dotBelow, 0xe07d, 0xe070, CSUR.dotBelow, 0xe071, CSUR.dotBelow])
+})
+
+test('Tengwar Annatar output matches Johan Winge’s own example', () => {
+  // the Annatar documentation types “sinome maruvan” as iT5^t$ t#7UyE5
+  assert.equal(toAnnatar(toTengwar('sinome maruvan', 'Q')), 'iT5^t$ t#7UyE5')
+  // every character converts: nothing in the private-use area is left over
+  for (const [s, l] of [['Mae govannen', 'S'], ['Elen síla lúmenn omentielvo', 'Q'], ['the lord of the rings', 'E']]) {
+    assert.ok([...toAnnatar(toTengwar(s, l))].every((c) => c.codePointAt(0) < 0xe000), s)
   }
 })
