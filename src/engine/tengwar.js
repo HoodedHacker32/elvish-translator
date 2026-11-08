@@ -142,7 +142,7 @@ const EN_HARD_CH = /^(christ|chris|chor|chara|chao|chem|echo|school|stomach|ache
 const EN_Z_WORDS = /^(is|as|has|was|his|hers|does|goes|these|those|whose)$/
 const EN_NASAL = { t: C.tinco, d: C.ando, p: C.parma, b: C.umbar, c: C.quesse, k: C.quesse, q: C.quesse, ch: C.calma, j: C.anga }
 const EN_HOMORGANIC = { n: ['t', 'd', 'c', 'k', 'q', 'ch', 'j'], m: ['p', 'b'] }
-const STEMLESS_ANNA = 0xe032
+export const STEMLESS_ANNA = 0xe032
 const EN_TEHTA = { a: TEHTA.a, e: TEHTA.e, i: TEHTA.i, o: TEHTA.o, u: TEHTA.u }
 
 function englishUnits(word) {
@@ -262,7 +262,7 @@ export function toTengwar(text, lang) {
 // For the keyboard-mapped fonts: each tengwa is an ordinary key, and each tehta has four keys, chosen by the
 // shape of the letter under it (Johan Winge, Tengwar Annatar 1.20 documentation, tables 3 and 4):
 // wide letters (two bows), narrow letters (one bow), letters with a raised stem, and the carriers.
-const ANNATAR_LETTERS = {
+export const ANNATAR_LETTERS = {
   tinco: '1', parma: 'q', calma: 'a', quesse: 'z', ando: '2', umbar: 'w', anga: 's', ungwe: 'x',
   thule: '3', formen: 'e', harma: 'd', hwesta: 'c', anto: '4', ampa: 'r', anca: 'f', unque: 'v',
   numen: '5', malta: 't', noldo: 'g', nwalme: 'b', ore: '6', vala: 'y', anna: 'h', vilya: 'n',
@@ -278,7 +278,7 @@ const SHAPE = {
   carrier: ['shortCarrier', 'halla'],
 }
 const shapeOf = (name) => (SHAPE.wide.includes(name) ? 0 : SHAPE.tall.includes(name) ? 2 : SHAPE.carrier.includes(name) ? 3 : 1)
-const ANNATAR_TEHTAR = {
+export const ANNATAR_TEHTAR = {
   threeDots: '#EDC', acute: '$RFV', dot: '%TGB', rightCurl: '^YHN', leftCurl: '&UJM', twoDots: 'ÔÕÖ×', breve: 'ØÙÚÛ',
   dotBelow: 'ÈÉÊË', twoDotsBelow: 'ÌÍÎÏ', nasalizer: '{{[[', doubler: '""\'\'', tilde: 'PPpp',
   // Annatar's standard font has no single doubled acute, so “ee” is two acutes
