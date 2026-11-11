@@ -288,6 +288,26 @@ const NAME_OF = Object.fromEntries(Object.entries(CSUR).map(([k, v]) => [v, k]))
 NAME_OF[STEMLESS_ANNA] = 'stemlessAnna'
 const ANNATAR_DIGITS = 'ðñòóôõö÷øùúû'
 
+// The other way: text typed for Tengwar Annatar, or any font in Dan Smith's encoding (Parmaitë, Elfica, the
+// older Tengwar Sindarin, Quenya and Noldor fonts), as Unicode (ConScript) for Alcarin, Telcontar, FreeMono
+// Tengwar and this app. Characters that mean nothing in the encoding (spaces, line breaks) are kept.
+let FROM_ANNATAR = null
+export function fromAnnatar(text) {
+  if (!FROM_ANNATAR) {
+    FROM_ANNATAR = new Map()
+    for (const [name, key] of Object.entries(ANNATAR_LETTERS)) if (CSUR[name] != null) FROM_ANNATAR.set(key, String.fromCodePoint(CSUR[name]))
+    for (const [name, keys] of Object.entries(ANNATAR_TEHTAR)) {
+      if (CSUR[name] == null || Array.isArray(keys)) continue
+      for (const k of keys) if (!FROM_ANNATAR.has(k)) FROM_ANNATAR.set(k, String.fromCodePoint(CSUR[name]))
+    }
+    ;[...ANNATAR_DIGITS].forEach((k, i) => FROM_ANNATAR.set(k, String.fromCodePoint(0xe070 + i)))
+    FROM_ANNATAR.set(']', String.fromCodePoint(STEMLESS_ANNA))
+  }
+  let out = ''
+  for (const ch of text) out += FROM_ANNATAR.get(ch) ?? ch
+  return out
+}
+
 export function toAnnatar(tengwar) {
   let out = ''
   let base = null

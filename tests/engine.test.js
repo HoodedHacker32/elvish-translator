@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { translate } from '../src/engine/translate.js'
 import { respell } from '../src/engine/pronounce.js'
-import { toTengwar, toTengwarNumber, toAnnatar, CSUR } from '../src/engine/tengwar.js'
+import { toTengwar, toTengwarNumber, toAnnatar, fromAnnatar, CSUR } from '../src/engine/tengwar.js'
 import { CANON } from '../src/data/canon.js'
 import { SINDARIN } from '../src/data/sindarin.js'
 import { QUENYA } from '../src/data/quenya.js'
@@ -498,4 +498,17 @@ test('Tengwar Annatar output matches Johan Winge’s own example', () => {
   for (const [s, l] of [['Mae govannen', 'S'], ['Elen síla lúmenn omentielvo', 'Q'], ['the lord of the rings', 'E']]) {
     assert.ok([...toAnnatar(toTengwar(s, l))].every((c) => c.codePointAt(0) < 0xe000), s)
   }
+})
+
+test('Annatar text converts back to Unicode Tengwar', () => {
+  // Johan Winge's own example, typed for Annatar, is the same Tengwar the engine writes
+  assert.equal(fromAnnatar('iT5^t$ t#7UyE5'), toTengwar('sinome maruvan', 'Q'))
+  // and the round trip loses nothing, numbers included
+  for (const [s, l] of [['Mae govannen', 'S'], ['Elen síla lúmenn omentielvo', 'Q'], ['the lord of the rings', 'E'], ['Annon edhellen, edro hi ammen!', 'S']]) {
+    const t = toTengwar(s, l)
+    assert.equal(fromAnnatar(toAnnatar(t)), t, s)
+  }
+  assert.equal(fromAnnatar(toAnnatar(toTengwarNumber(1954))), toTengwarNumber(1954))
+  // line breaks and spaces are kept
+  assert.equal(fromAnnatar('1\nq'), String.fromCodePoint(CSUR.tinco) + '\n' + String.fromCodePoint(CSUR.parma))
 })
